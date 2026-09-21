@@ -14,6 +14,22 @@
 
 ---
 
+## 🌐 Verified Live Production Deployment
+
+CampusHub is live in cloud production across Vercel, Render, Neon, and Upstash:
+
+| Layer | Host / Provider | Live Production URL | Status |
+|---|---|---|---|
+| **Frontend Web App** | Vercel Edge Network | [**https://frontend-psi-roan-84.vercel.app**](https://frontend-psi-roan-84.vercel.app) | **LIVE** (HTTPS) |
+| **Backend API (Daphne ASGI)** | Render Web Service | [**https://campushub-sxfs.onrender.com**](https://campushub-sxfs.onrender.com) | **LIVE** (HTTPS) |
+| **Real-Time WebSockets (WSS)** | Daphne ASGI Gateway | `wss://campushub-sxfs.onrender.com/ws/` | **LIVE** (WSS) |
+| **Serverless Database** | Neon PostgreSQL 18 | Managed Cloud Postgres (`us-east-2`) | **LIVE** |
+| **Redis Cache & Channel Layer** | Upstash Redis (TLS) | Managed Redis Cluster (`rediss://`) | **LIVE** |
+
+- **Complete Production Audit Report**: [FINAL_LIVE_PRODUCTION_REPORT.md](FINAL_LIVE_PRODUCTION_REPORT.md)
+
+---
+
 ## 1. Project Overview & Problem Statement
 
 University student life is fragmented across scattered chat groups, disjointed bulletin boards, paper event tickets, and uncoordinated club spreadsheets. Important academic alerts get lost in student inboxes, popular hackathons suffer chaotic overbooking lines, and club leaders lack modern check-in tooling.
