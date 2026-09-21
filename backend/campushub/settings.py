@@ -91,8 +91,11 @@ WSGI_APPLICATION = 'campushub.wsgi.application'
 ASGI_APPLICATION = 'campushub.asgi.application'
 
 # Django Channels & Redis Channel Layer
-REDIS_URL = os.getenv('REDIS_URL', '')
+REDIS_URL = os.getenv('REDIS_URL', '').strip()
 USE_REDIS_CHANNEL_LAYER = os.getenv('USE_REDIS_CHANNEL_LAYER', 'False').lower() in ('true', '1', 'yes')
+
+if REDIS_URL.startswith('redis://') and ('upstash.io' in REDIS_URL or os.getenv('REDIS_USE_TLS', '').lower() in ('true', '1')):
+    REDIS_URL = 'rediss://' + REDIS_URL[len('redis://'):]
 
 if USE_REDIS_CHANNEL_LAYER and REDIS_URL:
     CHANNEL_LAYERS = {

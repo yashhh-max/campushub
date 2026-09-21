@@ -18,6 +18,7 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
     """
 
     async def connect(self):
+        await self.accept()
         user = self.scope.get("user")
         if not user or not user.is_authenticated:
             await self.close(code=4001)
@@ -27,7 +28,6 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         self.group_name = f"user_{self.user_id}_notifications"
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
 
         await self.send_json({
             "type": "connection_established",
@@ -62,6 +62,7 @@ class ClubChatConsumer(AsyncJsonWebsocketConsumer):
     """
 
     async def connect(self):
+        await self.accept()
         user = self.scope.get("user")
         if not user or not user.is_authenticated:
             await self.close(code=4001)
@@ -77,7 +78,6 @@ class ClubChatConsumer(AsyncJsonWebsocketConsumer):
             return
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
 
         await self.send_json({
             "type": "connection_established",
@@ -220,11 +220,11 @@ class EventQAConsumer(AsyncJsonWebsocketConsumer):
     """
 
     async def connect(self):
+        await self.accept()
         self.event_id = self.scope["url_route"]["kwargs"]["event_id"]
         self.group_name = f"event_{self.event_id}_qa"
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
@@ -257,6 +257,7 @@ class EventAttendanceConsumer(AsyncJsonWebsocketConsumer):
     """
 
     async def connect(self):
+        await self.accept()
         user = self.scope.get("user")
         if not user or not user.is_authenticated:
             await self.close(code=4001)
@@ -271,7 +272,6 @@ class EventAttendanceConsumer(AsyncJsonWebsocketConsumer):
             return
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
 
         await self.send_json({
             "type": "connection_established",
