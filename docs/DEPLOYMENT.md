@@ -34,7 +34,34 @@ CampusHub is architected for modern decoupled production deployment:
 
 The repository is published on GitHub at `https://github.com/yashhh-max/campushub`.
 
-### 2.1 Backend Deployment on Railway
+### 2.1 Backend Deployment on Render + Neon + Upstash/Render Key Value
+1. **Database (Neon PostgreSQL)**:
+   - Create project on [Neon Console](https://console.neon.tech).
+   - Copy connection string: `postgresql://<user>:<password>@<endpoint>.neon.tech/<dbname>?sslmode=require`.
+2. **Redis Cache & Channels (Upstash Redis or Render Key Value)**:
+   - Create database on [Upstash Console](https://console.upstash.com) or Render Key Value.
+   - Copy Redis TLS connection string: `rediss://default:<password>@<endpoint>.upstash.io:6379`.
+3. **Render Web Service**:
+   - Go to [Render Dashboard](https://dashboard.render.com) → **New** → **Web Service** (or use the included `render.yaml` Blueprint).
+   - Connect repository `https://github.com/yashhh-max/campushub`.
+   - **Root Directory**: `backend`
+   - **Runtime**: `Python`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `python manage.py migrate && python manage.py seed_demo && daphne -b 0.0.0.0 -p $PORT campushub.asgi:application`
+   - **Environment Variables**:
+     ```env
+     DEBUG=False
+     SECRET_KEY=<generate-secure-random-64-char-string>
+     ALLOWED_HOSTS=.onrender.com,localhost,127.0.0.1
+     CORS_ALLOWED_ORIGINS=https://frontend-psi-roan-84.vercel.app
+     CSRF_TRUSTED_ORIGINS=https://frontend-psi-roan-84.vercel.app,https://*.onrender.com
+     USE_REDIS_CHANNEL_LAYER=True
+     DATABASE_URL=postgresql://<user>:<password>@<endpoint>.neon.tech/<dbname>?sslmode=require
+     REDIS_URL=rediss://default:<password>@<endpoint>.upstash.io:6379
+     ALLOWED_STUDENT_EMAIL_DOMAINS=*
+     ```
+
+### 2.2 Backend Deployment on Railway (Legacy/Alternative)
 1. **Create Project**: Go to [Railway.app](https://railway.app), select **New Project** → **Deploy from GitHub repo** → select `yashhh-max/campushub`.
 2. **Set Root Directory**: Select `/backend` if prompted, or configure build context.
 3. **Provision Managed PostgreSQL**: Click **+ New Service** → **Database** → **PostgreSQL**.
@@ -44,8 +71,8 @@ The repository is published on GitHub at `https://github.com/yashhh-max/campushu
    DEBUG=False
    SECRET_KEY=<generate-64-char-random-key>
    ALLOWED_HOSTS=.railway.app,your-domain.com
-   CSRF_TRUSTED_ORIGINS=https://campushub.vercel.app,https://*.railway.app
-   CORS_ALLOWED_ORIGINS=https://campushub.vercel.app
+   CSRF_TRUSTED_ORIGINS=https://frontend-psi-roan-84.vercel.app,https://*.railway.app
+   CORS_ALLOWED_ORIGINS=https://frontend-psi-roan-84.vercel.app
    USE_REDIS_CHANNEL_LAYER=True
    REDIS_URL=${{Redis.REDIS_URL}}
    DATABASE_URL=${{Postgres.DATABASE_URL}}
