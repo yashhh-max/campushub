@@ -185,7 +185,7 @@ class ClubChatConsumer(AsyncJsonWebsocketConsumer):
                 "id": msg.id,
                 "club_id": club.id,
                 "sender_id": user.id,
-                "sender_name": user.get_full_name() or user.username,
+                "sender_name": getattr(user, "full_name", "") or user.email,
                 "sender_email": user.email,
                 "sender_role": getattr(user, "role", "student"),
                 "content": msg.content,
