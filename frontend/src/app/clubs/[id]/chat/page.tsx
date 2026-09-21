@@ -70,7 +70,7 @@ export default function ClubChatPage({ params }: PageProps) {
       try {
         const [clubData, msgHistory] = await Promise.all([
           fetchClubById(clubId, token),
-          fetchClubMessages(clubId, token).catch(() => []),
+          fetchClubMessages(token, clubId).catch(() => []),
         ]);
 
         if (isMounted) {
