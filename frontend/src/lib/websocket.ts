@@ -5,13 +5,20 @@
  */
 
 export function getWebSocketBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL.replace(/\/$/, "");
+  }
   if (typeof window === "undefined") {
     return "ws://127.0.0.1:8000";
   }
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-  const url = new URL(apiBase);
-  const protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${url.host}`;
+  try {
+    const url = new URL(apiBase);
+    const protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${url.host}`;
+  } catch {
+    return "ws://127.0.0.1:8000";
+  }
 }
 
 export interface WebSocketClientOptions {
