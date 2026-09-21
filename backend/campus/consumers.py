@@ -27,17 +27,24 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         self.user_id = user.id
         self.group_name = f"user_{self.user_id}_notifications"
 
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
-
         await self.send_json({
             "type": "connection_established",
             "message": "Connected to real-time notification stream.",
             "user_id": self.user_id,
         })
 
+        if self.channel_layer:
+            try:
+                await self.channel_layer.group_add(self.group_name, self.channel_name)
+            except Exception:
+                pass
+
     async def disconnect(self, close_code):
-        if hasattr(self, "group_name"):
-            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        if hasattr(self, "group_name") and self.channel_layer:
+            try:
+                await self.channel_layer.group_discard(self.group_name, self.channel_name)
+            except Exception:
+                pass
 
     async def receive_json(self, content):
         msg_type = content.get("type")
@@ -77,13 +84,17 @@ class ClubChatConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4003)
             return
 
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
-
         await self.send_json({
             "type": "connection_established",
             "message": f"Connected to Club {self.club_id} chat room.",
             "club_id": self.club_id,
         })
+
+        if self.channel_layer:
+            try:
+                await self.channel_layer.group_add(self.group_name, self.channel_name)
+            except Exception:
+                pass
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
