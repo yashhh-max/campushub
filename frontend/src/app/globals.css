@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
@@ -10,16 +8,6 @@
   --card-hover: #f1f5f9;
   --brand-primary: #4338ca;
   --brand-accent: #f59e0b;
-}
-
-.dark {
-  --background: #090d16;
-  --foreground: #f8fafc;
-  --card: #111827;
-  --card-border: #1e293b;
-  --card-hover: #172033;
-  --brand-primary: #6366f1;
-  --brand-accent: #fbbf24;
 }
 
 body {

@@ -23,7 +23,6 @@ import {
   Clock,
   ChevronRight,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -261,8 +260,6 @@ export function Navbar() {
 
         {/* Right Actions */}
         <div className="hidden sm:flex items-center gap-2.5">
-          <ThemeToggle />
-
           {isAuthenticated && user ? (
             <div className="flex items-center gap-2 pl-1">
               {/* Notification Bell Dropdown */}
@@ -457,7 +454,7 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile Hamburger & Theme Toggle */}
+        {/* Mobile Hamburger Menu */}
         <div className="flex sm:hidden items-center gap-2">
           {isAuthenticated && (
             <Link
@@ -470,7 +467,6 @@ export function Navbar() {
               )}
             </Link>
           )}
-          <ThemeToggle />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
