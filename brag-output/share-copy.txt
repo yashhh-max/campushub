@@ -1,0 +1,1 @@
+Built CampusHub: the production-ready operating system for college communities with atomic RSVP locks, real-time Daphne WebSockets, and vector QR attendance scanning.

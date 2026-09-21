@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>CampusHub Launch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #020617;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #f8fafc;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Viewport Stage */
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        background: #020617;
+        overflow: hidden;
+      }
+
+      /* Ambient Studio Glows */
+      .ambient-glow-1 {
+        position: absolute;
+        top: -150px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 1000px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, rgba(99, 102, 241, 0.04) 50%, transparent 75%);
+        pointer-events: none;
+        z-index: 1;
+      }
+      .ambient-glow-2 {
+        position: absolute;
+        bottom: -200px;
+        right: 15%;
+        width: 800px;
+        height: 500px;
+        background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 1;
+      }
+      .subtle-grid {
+        position: absolute;
+        inset: 0;
+        background-image: 
+          linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 60px 60px;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      /* Clips / Scenes */
+      .clip {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        opacity: 0;
+      }
+
+      /* Typography */
+      h1, h2, h3 {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 18px;
+        background: rgba(99, 102, 241, 0.15);
+        border: 1px solid rgba(99, 102, 241, 0.35);
+        border-radius: 9999px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #a5b4fc;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 24px;
+      }
+      .headline-hero {
+        font-size: 76px;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        text-align: center;
+        max-width: 1400px;
+        background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .headline-hero span {
+        background: linear-gradient(135deg, #818cf8 0%, #4f46e5 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .subtext {
+        font-size: 24px;
+        color: #94a3b8;
+        margin-top: 20px;
+        text-align: center;
+        max-width: 900px;
+        line-height: 1.5;
+      }
+
+      /* Glass Card */
+      .glass-card {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(51, 65, 85, 0.8);
+        border-radius: 24px;
+        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+      }
+
+      /* Scene 1: Command Metrics */
+      .stats-strip {
+        display: flex;
+        gap: 32px;
+        margin-top: 50px;
+      }
+      .stat-box {
+        width: 260px;
+        padding: 24px 28px;
+        text-align: center;
+      }
+      .stat-num {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 48px;
+        font-weight: 800;
+        color: #f8fafc;
+        letter-spacing: -0.02em;
+      }
+      .stat-label {
+        font-size: 15px;
+        font-weight: 600;
+        color: #94a3b8;
+        margin-top: 6px;
+        letter-spacing: 0.02em;
+      }
+
+      /* Scene 2: Event & Waitlist Card */
+      .event-card {
+        width: 860px;
+        padding: 40px;
+        position: relative;
+      }
+      .event-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .event-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #f8fafc;
+        line-height: 1.2;
+      }
+      .event-meta {
+        font-size: 16px;
+        color: #94a3b8;
+        margin-top: 8px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .badge-indigo {
+        background: rgba(99, 102, 241, 0.2);
+        color: #a5b4fc;
+        border: 1px solid rgba(99, 102, 241, 0.4);
+      }
+      .badge-emerald {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+      }
+      .badge-amber {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.4);
+      }
+
+      .capacity-section {
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(51, 65, 85, 0.6);
+      }
+      .capacity-bar-track {
+        width: 100%;
+        height: 12px;
+        background: #1e293b;
+        border-radius: 9999px;
+        overflow: hidden;
+        margin-top: 12px;
+      }
+      .capacity-bar-fill {
+        height: 100%;
+        width: 90%;
+        background: linear-gradient(90deg, #6366f1 0%, #10b981 100%);
+        border-radius: 9999px;
+      }
+      .capacity-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 15px;
+        font-weight: 500;
+        color: #94a3b8;
+      }
+      .waitlist-alert-box {
+        margin-top: 24px;
+        padding: 16px 20px;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* Scene 3: Vector QR Pass */
+      .ticket-container {
+        display: flex;
+        gap: 48px;
+        align-items: center;
+      }
+      .ticket-card {
+        width: 520px;
+        padding: 36px;
+        position: relative;
+      }
+      .qr-wrapper {
+        position: relative;
+        width: 220px;
+        height: 220px;
+        background: #ffffff;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px auto 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+      }
+      .qr-svg {
+        width: 180px;
+        height: 180px;
+      }
+      .scan-beam {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: #10b981;
+        box-shadow: 0 0 12px 3px #10b981;
+      }
+      .scanner-feed {
+        width: 520px;
+        padding: 36px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .scanner-status-item {
+        padding: 20px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      /* Scene 4: Daphne WebSockets */
+      .ws-container {
+        display: flex;
+        gap: 40px;
+        width: 1100px;
+      }
+      .chat-panel {
+        flex: 1;
+        padding: 32px;
+      }
+      .chat-msg {
+        padding: 14px 18px;
+        border-radius: 14px;
+        margin-bottom: 12px;
+        font-size: 15px;
+        line-height: 1.4;
+      }
+      .chat-msg-in {
+        background: #1e293b;
+        color: #f1f5f9;
+        margin-right: 40px;
+      }
+      .chat-msg-out {
+        background: #4338ca;
+        color: #ffffff;
+        margin-left: 40px;
+      }
+      .telemetry-panel {
+        width: 420px;
+        padding: 32px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      /* Scene 5: Outro & Logo */
+      .logo-mark {
+        width: 120px;
+        height: 120px;
+        border-radius: 30px;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #10b981 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 20px 50px rgba(99, 102, 241, 0.4);
+        margin-bottom: 28px;
+      }
+      .tech-badges {
+        display: flex;
+        gap: 16px;
+        margin-top: 40px;
+      }
+      .tech-pill {
+        padding: 10px 22px;
+        background: rgba(30, 41, 59, 0.75);
+        border: 1px solid rgba(71, 85, 105, 0.5);
+        border-radius: 9999px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="18"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="ambient-glow-1"></div>
+      <div class="ambient-glow-2"></div>
+      <div class="subtle-grid"></div>
+
+      <!-- ================= SCENE 1: THE HOOK (0s - 3.5s) ================= -->
+      <div id="scene-1" class="clip" data-start="0" data-duration="3.5" data-track-index="1">
+        <div class="eyebrow" id="s1-eyebrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Campus Infrastructure Re-Engineered
+        </div>
+        <h1 class="headline-hero" id="s1-title">
+          Campus Life Runs on Chaos.<br>
+          <span>Meet CampusHub.</span>
+        </h1>
+        <p class="subtext" id="s1-desc">The production-ready operating system unifying student communities, atomic registrations, and live campus pulse.</p>
+        
+        <div class="stats-strip" id="s1-stats">
+          <div class="glass-card stat-box">
+            <div class="stat-num" style="color: #818cf8;">1,420</div>
+            <div class="stat-label">Active Students</div>
+          </div>
+          <div class="glass-card stat-box">
+            <div class="stat-num" style="color: #34d399;">38</div>
+            <div class="stat-label">Verified Clubs</div>
+          </div>
+          <div class="glass-card stat-box">
+            <div class="stat-num" style="color: #38bdf8;">99.98%</div>
+            <div class="stat-label">System Uptime</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= SCENE 2: ATOMIC RSVP & WAITLIST (3.5s - 8.0s) ================= -->
+      <div id="scene-2" class="clip" data-start="3.5" data-duration="4.5" data-track-index="2">
+        <div class="eyebrow" id="s2-eyebrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Concurrency-Safe Data Engine
+        </div>
+        <h2 class="headline-hero" style="font-size: 56px; margin-bottom: 30px;">Atomic RSVP & Instant FIFO Promotion</h2>
+        
+        <div class="glass-card event-card" id="s2-card">
+          <div class="event-header">
+            <div>
+              <div class="event-title">Annual Tech Vision Hackathon 2026</div>
+              <div class="event-meta">Auditorium Hall A • Oct 14 • Hosted by Google Developer Student Club</div>
+            </div>
+            <span class="badge badge-amber" id="s2-status-badge">CAPACITY REACHED</span>
+          </div>
+
+          <div class="capacity-section">
+            <div class="capacity-labels">
+              <span>Event Registration Capacity</span>
+              <span id="s2-capacity-num" style="color: #f8fafc; font-weight: 700;">100 / 100 Filled</span>
+            </div>
+            <div class="capacity-bar-track">
+              <div class="capacity-bar-fill" id="s2-capacity-bar"></div>
+            </div>
+          </div>
+
+          <div class="waitlist-alert-box" id="s2-waitlist-box">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); display: flex; align-items: center; justify-content: center; color: #34d399;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <div>
+                <div style="font-weight: 700; color: #f8fafc; font-size: 16px;" id="s2-alert-title">Spot Available — Row Lock Triggered!</div>
+                <div style="font-size: 14px; color: #94a3b8;" id="s2-alert-sub">Auto-promoted from Waitlist Position #1 to Confirmed RSVP</div>
+              </div>
+            </div>
+            <span class="badge badge-emerald" style="font-size: 13px; font-weight: 700;">VERIFIED CONFIRMED</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= SCENE 3: DIGITAL VECTOR QR PASS (8.0s - 12.0s) ================= -->
+      <div id="scene-3" class="clip" data-start="8.0" data-duration="4.0" data-track-index="3">
+        <div class="eyebrow" id="s3-eyebrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Fraud-Proof Vector Ticketing
+        </div>
+        <h2 class="headline-hero" style="font-size: 56px; margin-bottom: 30px;">Encrypted QR Attendance & Anti-Duplication</h2>
+
+        <div class="ticket-container" id="s3-content">
+          <!-- Ticket Pass -->
+          <div class="glass-card ticket-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-weight: 700; font-size: 18px; color: #f8fafc;">OFFICIAL DIGITAL PASS</div>
+              <span class="badge badge-indigo">SECURE TOKEN</span>
+            </div>
+            <div class="qr-wrapper">
+              <!-- Crisp Vector QR Code Mockup -->
+              <svg class="qr-svg" viewBox="0 0 100 100" fill="#0f172a">
+                <rect x="10" y="10" width="25" height="25" rx="3" fill="#0f172a" />
+                <rect x="15" y="15" width="15" height="15" fill="#ffffff" />
+                <rect x="18" y="18" width="9" height="9" fill="#0f172a" />
+                <rect x="65" y="10" width="25" height="25" rx="3" fill="#0f172a" />
+                <rect x="70" y="15" width="15" height="15" fill="#ffffff" />
+                <rect x="73" y="18" width="9" height="9" fill="#0f172a" />
+                <rect x="10" y="65" width="25" height="25" rx="3" fill="#0f172a" />
+                <rect x="15" y="70" width="15" height="15" fill="#ffffff" />
+                <rect x="18" y="73" width="9" height="9" fill="#0f172a" />
+                <!-- Pattern elements -->
+                <rect x="42" y="15" width="8" height="8" fill="#0f172a" />
+                <rect x="48" y="30" width="12" height="8" fill="#0f172a" />
+                <rect x="40" y="45" width="20" height="10" fill="#0f172a" />
+                <rect x="65" y="48" width="10" height="20" fill="#0f172a" />
+                <rect x="45" y="68" width="15" height="8" fill="#0f172a" />
+                <rect x="70" y="75" width="15" height="12" fill="#0f172a" />
+              </svg>
+              <div class="scan-beam" id="s3-beam"></div>
+            </div>
+            <div style="text-align: center; margin-top: 18px;">
+              <div style="font-size: 18px; font-weight: 700; color: #f8fafc;">Yashwanth R.</div>
+              <div style="font-size: 14px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; margin-top: 4px;">TKT-2026-84920-VERIFIED</div>
+            </div>
+          </div>
+
+          <!-- Live Scanner Output -->
+          <div class="glass-card scanner-feed">
+            <div style="font-size: 20px; font-weight: 700; color: #f8fafc; border-bottom: 1px solid rgba(51, 65, 85, 0.6); padding-bottom: 14px;">
+              Mobile Camera Scanner Stream
+            </div>
+            
+            <div class="scanner-status-item" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35);" id="s3-scan-success">
+              <div style="width: 44px; height: 44px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center; color: #020617; font-weight: 800;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div>
+                <div style="font-weight: 700; color: #34d399; font-size: 17px;">ATTENDANCE VERIFIED</div>
+                <div style="font-size: 14px; color: #cbd5e1; margin-top: 2px;">Yashwanth R. • Registered Attendee #84</div>
+              </div>
+            </div>
+
+            <div class="scanner-status-item" style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(51, 65, 85, 0.5);" id="s3-scan-duplicate">
+              <div style="width: 44px; height: 44px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; color: #94a3b8;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+              </div>
+              <div>
+                <div style="font-weight: 600; color: #94a3b8; font-size: 15px;">Duplicate Prevention Active</div>
+                <div style="font-size: 13px; color: #64748b; margin-top: 2px;">Re-scans flagged instantly with zero double-counting</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= SCENE 4: DAPHNE WEBSOCKETS (12.0s - 15.5s) ================= -->
+      <div id="scene-4" class="clip" data-start="12.0" data-duration="3.5" data-track-index="4">
+        <div class="eyebrow" id="s4-eyebrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Sub-100ms Daphne ASGI + Redis
+        </div>
+        <h2 class="headline-hero" style="font-size: 56px; margin-bottom: 30px;">Real-Time Club Channels & Live Telemetry</h2>
+
+        <div class="ws-container" id="s4-container">
+          <div class="glass-card chat-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(51, 65, 85, 0.6);">
+              <div style="font-weight: 700; color: #f8fafc; font-size: 17px;"># robotics-autonomous-systems</div>
+              <span class="badge badge-emerald" style="font-size: 12px;">● LIVE ASGI SOCKET</span>
+            </div>
+            <div class="chat-msg chat-msg-in" id="s4-msg-1">
+              <span style="font-weight: 600; color: #a5b4fc; font-size: 13px; display: block; margin-bottom: 3px;">Priya S. (Lead Engineer)</span>
+              Firmware payload uploaded to the telemetry channel. All hardware diagnostics green!
+            </div>
+            <div class="chat-msg chat-msg-out" id="s4-msg-2">
+              <span style="font-weight: 600; color: #c7d2fe; font-size: 13px; display: block; margin-bottom: 3px;">Alex K.</span>
+              Synchronized on all student nodes. Real-time broadcast latencies at 14ms!
+            </div>
+          </div>
+
+          <div class="glass-card telemetry-panel">
+            <div style="font-size: 18px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Live Check-in Counter</div>
+            <div style="font-size: 72px; font-weight: 800; color: #34d399; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1; margin: 16px 0;" id="s4-counter">
+              84 / 100
+            </div>
+            <div style="font-size: 15px; color: #94a3b8;">Concurrent student check-ins pushed via Daphne Redis channels without refresh.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= SCENE 5: OUTRO (15.5s - 18.0s) ================= -->
+      <div id="scene-5" class="clip" data-start="15.5" data-duration="2.5" data-track-index="5">
+        <div class="logo-mark" id="s5-logo">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <h1 class="headline-hero" id="s5-title" style="font-size: 72px;">
+          CampusHub
+        </h1>
+        <p class="subtext" id="s5-sub" style="font-size: 26px; color: #e2e8f0; font-weight: 500;">
+          The Modern Operating System for Campus Communities
+        </p>
+
+        <div class="tech-badges" id="s5-badges">
+          <div class="tech-pill">Next.js 15 App Router</div>
+          <div class="tech-pill">Django 5 + Channels</div>
+          <div class="tech-pill">Daphne ASGI</div>
+          <div class="tech-pill">Redis WebSocket Engine</div>
+          <div class="tech-pill">PostgreSQL Row Locks</div>
+        </div>
+      </div>
+
+      <!-- ================= AUDIO LAYER ================= -->
+      <!-- Music Bed -->
+      <audio id="bg-music" data-start="0" data-duration="18" data-track-index="10" data-volume="0.35" src="assets/music/track.mp3"></audio>
+      
+      <!-- SFX Layer -->
+      <audio id="sfx-drop" data-start="0.1" data-duration="0.2" data-track-index="11" data-volume="0.75" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-click" data-start="3.5" data-duration="0.1" data-track-index="12" data-volume="0.75" src="assets/sfx/ui/mouseclick1.ogg"></audio>
+      <audio id="sfx-chips" data-start="5.5" data-duration="0.4" data-track-index="13" data-volume="0.80" src="assets/sfx/casino/chips-collide-1.ogg"></audio>
+      <audio id="sfx-scan" data-start="8.2" data-duration="0.2" data-track-index="14" data-volume="0.80" src="assets/sfx/interface/click_001.ogg"></audio>
+      <audio id="sfx-bell" data-start="9.5" data-duration="1.0" data-track-index="15" data-volume="0.85" src="assets/sfx/impact/impactBell_heavy_000.ogg"></audio>
+      <audio id="sfx-outro" data-start="15.5" data-duration="0.5" data-track-index="16" data-volume="0.85" src="assets/sfx/interface/bong_001.ogg"></audio>
+    </div>
+
+    <!-- ================= GSAP TIMELINE ================= -->
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- SCENE 1 (0.0s - 3.5s) ----------
+      // Beat-locked: 0.0s entrance
+      tl.to("#scene-1", { opacity: 1, duration: 0.4 }, 0.0);
+      tl.fromTo("#s1-eyebrow", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.1);
+      tl.fromTo("#s1-title", { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.3);
+      tl.fromTo("#s1-desc", { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.5);
+      // Beat-grid stat reveals
+      tl.fromTo("#s1-stats .stat-box", { opacity: 0, y: 25 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.2, ease: "back.out(1.5)" }, 0.8);
+      // Exit Scene 1
+      tl.to("#scene-1", { opacity: 0, scale: 1.05, duration: 0.4, ease: "power2.in" }, 3.2);
+
+      // ---------- SCENE 2 (3.5s - 8.0s) ----------
+      // Beat-locked: 3.5s transition
+      tl.to("#scene-2", { opacity: 1, duration: 0.4 }, 3.5);
+      tl.fromTo("#s2-eyebrow", { opacity: 0, y: -15 }, { opacity: 1, y: 0, duration: 0.4 }, 3.6);
+      tl.fromTo("#s2-card", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 3.8);
+      // Capacity fills from 70% to 100%
+      tl.fromTo("#s2-capacity-bar", { width: "70%" }, { width: "100%", duration: 1.2, ease: "power2.inOut" }, 4.0);
+      // Auto-promotion box pops in with emerald glory
+      tl.fromTo("#s2-waitlist-box", { opacity: 0, scale: 0.92, y: 15 }, { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: "back.out(1.7)" }, 5.5);
+      // Exit Scene 2
+      tl.to("#scene-2", { opacity: 0, scale: 0.95, duration: 0.4, ease: "power2.in" }, 7.7);
+
+      // ---------- SCENE 3 (8.0s - 12.0s) ----------
+      // Beat-locked: 8.0s reveal
+      tl.to("#scene-3", { opacity: 1, duration: 0.4 }, 8.0);
+      tl.fromTo("#s3-eyebrow", { opacity: 0, y: -15 }, { opacity: 1, y: 0, duration: 0.4 }, 8.1);
+      tl.fromTo("#s3-content", { opacity: 0, y: 25 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 8.2);
+      // QR laser beam sweep down and up using transform y
+      tl.fromTo("#s3-beam", { y: 0 }, { y: 216, duration: 1.0, ease: "power1.inOut" }, 8.5);
+      // Verified checkmark pop
+      tl.fromTo("#s3-scan-success", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, 9.5);
+      tl.fromTo("#s3-scan-duplicate", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4 }, 10.3);
+      // Exit Scene 3
+      tl.to("#scene-3", { opacity: 0, x: -30, duration: 0.4, ease: "power2.in" }, 11.7);
+
+      // ---------- SCENE 4 (12.0s - 15.5s) ----------
+      // Beat-locked: 12.0s arrival
+      tl.to("#scene-4", { opacity: 1, duration: 0.4 }, 12.0);
+      tl.fromTo("#s4-eyebrow", { opacity: 0, y: -15 }, { opacity: 1, y: 0, duration: 0.4 }, 12.1);
+      tl.fromTo("#s4-container", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 12.2);
+      // Chat message beat sequence
+      tl.fromTo("#s4-msg-1", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 12.5);
+      tl.fromTo("#s4-msg-2", { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 13.1);
+      // Telemetry counter pulse
+      tl.fromTo("#s4-counter", { scale: 0.9 }, { scale: 1.08, duration: 0.3, yoyo: true, repeat: 1, ease: "power1.inOut" }, 13.5);
+      // Exit Scene 4
+      tl.to("#scene-4", { opacity: 0, scale: 1.03, duration: 0.4, ease: "power2.in" }, 15.2);
+
+      // ---------- SCENE 5 (15.5s - 18.0s) ----------
+      // Beat-locked: 15.5s outro payoff
+      tl.to("#scene-5", { opacity: 1, duration: 0.4 }, 15.5);
+      tl.fromTo("#s5-logo", { opacity: 0, scale: 0.6, rotation: -10 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.6, ease: "back.out(2)" }, 15.6);
+      tl.fromTo("#s5-title", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 15.8);
+      tl.fromTo("#s5-sub", { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 16.0);
+      // Badges stagger
+      tl.fromTo("#s5-badges .tech-pill", { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.1, ease: "power2.out" }, 16.3);
+
+      // Settle and register with Hyperframes runtime
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

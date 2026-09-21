@@ -1,36 +1,42 @@
-# CampusHub Phase 4 Roadmap
+# CampusHub Comprehensive Roadmap
 
-## Milestone: Phase 4 — Clubs & Community Hub & Event Waitlist
+## Phase 1: Architecture Foundation & Monorepo Setup [COMPLETED]
+- [x] Monorepo structure with Next.js 15 App Router & Django 5.1 REST Framework
+- [x] Obsidian dark design system with Tailwind CSS tokens and accessible contrast
+- [x] Responsive landing page with interactive event discovery showcase
 
-- [x] **P4.0 — Research & Architecture Alignment**: Inspect existing Club/Event models, user role systems, and frontend components.
-- [ ] **P4.1 — Database Models & Migrations**:
-  - Extend `Club` with `membership_requires_approval` and `banner_gradient`.
-  - Add `ClubMembership` with `role` (member, moderator, vice_president, president), `status` (pending, approved, rejected), and unique `(club, user)` constraint.
-  - Add `ClubPost` with `post_type` (announcement, update, discussion), `is_pinned`, and `is_members_only`.
-  - Extend `EventRSVP` with `waitlist` status and automatic promotion on cancellation.
-- [ ] **P4.2 — Backend Permissions & Serializers**:
-  - `IsClubLeaderOrAdmin`, `IsClubMemberOrLeader`, `CanManageClubPost`.
-  - `ClubSerializer`, `ClubDetailSerializer`, `ClubMembershipSerializer`, `ClubPostSerializer`.
-- [ ] **P4.3 — Backend Views & Endpoints**:
-  - `GET /api/clubs/`, `GET /api/clubs/<id>/`, `POST /api/clubs/`, `PATCH /api/clubs/<id>/`, `DELETE /api/clubs/<id>/`.
-  - `POST /api/clubs/<id>/join/`, `DELETE /api/clubs/<id>/leave/`, `GET /api/clubs/my/`, `GET /api/clubs/<id>/members/`.
-  - Membership approvals: `/approve/`, `/reject/`.
-  - Community posts CRUD: `/api/clubs/<id>/posts/`.
-  - Event Waitlist promotion in `EventRSVPView`.
-- [ ] **P4.4 — Automated Backend Tests**:
-  - Unit and integration tests for club creation, membership applications, leader approvals, posts permissions, and atomic waitlist promotion.
-- [ ] **P4.5 — Frontend API & Types**:
-  - Extend `types/campus.ts` and `lib/api.ts`.
-- [ ] **P4.6 — Frontend Pages & UI**:
-  - `/clubs` (Directory, search, category filters, responsive cards).
-  - `/clubs/[id]` (Hero, overview, member/leave button, community feed, upcoming club events, roster).
-  - `/clubs/create`, `/clubs/[id]/edit`, `/clubs/[id]/manage` (Leadership command center).
-  - `/dashboard/clubs` (Student portal).
-  - Update `Navbar.tsx` and `RSVPButton.tsx` (waitlist state).
-- [ ] **P4.7 — Verification & Static Analysis**:
-  - `python manage.py test users campus core`.
-  - `npm run lint` & `npm run build`.
-- [ ] **P4.8 — Browser Verification**:
-  - Playwright end-to-end user journey test.
-- [ ] **P4.9 — Documentation & Walkthrough**:
-  - Update `docs/API.md`, `docs/ARCHITECTURE.md`, `walkthrough.md`.
+## Phase 2: Authentication & Student Profiles [COMPLETED]
+- [x] JWT authentication with HttpOnly cookies & automatic token refresh
+- [x] Role-based access control (Student, Club Leader, Campus Admin)
+- [x] Profile management with avatar upload and campus affiliation badges
+
+## Phase 3: Event Management & Concurrency-Safe RSVP [COMPLETED]
+- [x] Event lifecycle management (Draft, Published, Completed, Cancelled)
+- [x] Concurrency-safe event RSVP using PostgreSQL row-level locks (`select_for_update()`)
+- [x] Filterable event catalog with category tags, date picker, and search
+
+## Phase 4: Clubs & Community Hub & Event Waitlist [COMPLETED]
+- [x] Club creation, governance tiers, and membership application workflows
+- [x] Community feed with pinned club announcements and member discussions
+- [x] Automated FIFO waitlist promotion upon event cancellation
+
+## Phase 5: Real-Time WebSockets & Notifications [COMPLETED]
+- [x] Daphne ASGI server integration with Redis channel layer
+- [x] Real-time club chat rooms with sub-100ms message propagation
+- [x] Instant campus announcement push alerts and notification center
+
+## Phase 6: Vector QR Ticketing & Scanner [COMPLETED]
+- [x] Cryptographic digital vector QR ticket generation per confirmed attendee
+- [x] Mobile camera QR scanner with duplicate check-in rejection
+- [x] Live attendance telemetry synchronizing with organizer dashboard
+
+## Phase 7: Production Hardening, CI/CD & Documentation [COMPLETED]
+- [x] Production Docker orchestration (`docker-compose.prod.yml`) with Nginx reverse proxy
+- [x] Strict Content Security Policy (CSP), OWASP Top 10 security hardening, and rate limiting
+- [x] Prometheus metrics endpoints, structured logging, and health probe telemetry
+- [x] Comprehensive documentation suite (`ARCHITECTURE.md`, `API.md`, `DEPLOYMENT.md`, etc.)
+- [x] Idempotent demo database seeding via `python manage.py seed_demo`
+
+## Showcase & Launch [COMPLETED]
+- [x] Autonomous `/brag` Hyperframes 18s 1080p launch video (`brag-output/brag.mp4`)
+- [x] Frame-0 baked poster thumbnail (`brag-output/brag.jpg`) and multi-platform social launch copy
