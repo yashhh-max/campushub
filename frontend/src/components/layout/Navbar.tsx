@@ -336,11 +336,10 @@ export function Navbar() {
                           <div
                             key={n.id}
                             onClick={() => handleMarkOneRead(n)}
-                            className={`p-3 text-left flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors ${
-                              !n.is_read
+                            className={`p-3 text-left flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors ${!n.is_read
                                 ? "bg-indigo-50/40 dark:bg-indigo-950/20"
                                 : ""
-                            }`}
+                              }`}
                           >
                             <div className="mt-0.5 p-2 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0">
                               {getNotifIcon(n.notification_type)}

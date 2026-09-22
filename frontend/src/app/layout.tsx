@@ -56,7 +56,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} scroll-smooth`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} scroll-smooth`} suppressHydrationWarning style={{ colorScheme: 'light' }}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -65,13 +65,14 @@ export default function RootLayout({
                 try {
                   localStorage.removeItem('theme');
                   document.documentElement.classList.remove('dark');
+                  document.documentElement.style.colorScheme = 'light';
                 } catch (e) {}
               })();
             `,
           }}
         />
       </head>
-      <body className="min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+      <body className="min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white bg-slate-50 text-slate-900" style={{ colorScheme: 'light' }}>
         <AuthProvider>
           {children}
         </AuthProvider>
