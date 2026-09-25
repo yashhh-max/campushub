@@ -2,53 +2,42 @@
 
 import { useEffect, useRef } from "react";
 
-const SYMBOLS = [
-  "{",
-  "}",
-  "<",
-  ">",
-  "(",
-  ")",
-  "[",
-  "]",
-  "/",
-  ";",
-  "#",
-  "*",
-  "+",
-  "=",
-  "_",
-] as const;
-
-const COLOR_PALETTES = [
-  { bg: "#818CF8", text: "#1E1B4B" }, // purple / indigo
-  { bg: "#A78BFA", text: "#312E81" }, // violet
-  { bg: "#F472B6", text: "#881337" }, // pink
-  { bg: "#34D399", text: "#064E3B" }, // green
-  { bg: "#A3E635", text: "#365314" }, // lime
-  { bg: "#FBBF24", text: "#78350F" }, // yellow
-  { bg: "#FB923C", text: "#7C2D12" }, // orange
-  { bg: "#38BDF8", text: "#0C4A6E" }, // blue
+// Designed color sequence directly matching the reference screenshot
+const COLOR_SEQUENCE = [
+  "#E83151", // Hot Pink
+  "#3B49DF", // Royal Blue
+  "#B892FF", // Lavender / Lilac
+  "#D49B00", // Mustard Gold
+  "#C2410C", // Burnt Terracotta
+  "#4338CA", // Deep Indigo
+  "#A78BFA", // Light Purple
+  "#CA8A04", // Ochre Yellow
 ];
 
-const MAX_TILES = 25;
-const THROTTLE_MS = 75; // 1 tile every ~75ms
+// Reference syntax symbols
+const SYMBOLS = ["+", "=", "-", "(", ")", "<", ">", "{", "}", "/", ";", "#", "•"];
+
+const TILE_WIDTH = 24;
+const TILE_HEIGHT = 20;
+const STEP_DISTANCE = 22; // Distance between consecutive tiles along the path
+const MAX_VISIBLE_TILES = 12; // Compact short trail of 6–12 tiles
+const TILE_LIFETIME_MS = 650; // Smooth 650ms fadeout
 
 /**
  * CursorTrail
- * Displays a lightweight, non-blocking stream of floating syntax/code tiles
- * (<, >, {, }, /, ;, #, etc.) that trail the user's cursor.
- * Inspired directly by the GitHub Universe developer cursor effect.
+ * Renders a compact, connected chain of small rectangular flat-colored code tiles
+ * along the cursor's path (e.g., [ + ][   ][ = ][   ][   ][ - ][ ( ][ • ]).
+ * Matches the flat graphic/editorial GitHub Universe reference screenshot.
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastSpawnTime = useRef(0);
-  const lastPosition = useRef({ x: -100, y: -100 });
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const colorIndexRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1. Accessibility & capability checks
+    // Accessibility & device pointer capability checks
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const pointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
 
@@ -59,92 +48,74 @@ export function CursorTrail() {
     const container = containerRef.current;
     if (!container) return;
 
-    const handlePointerMove = (e: PointerEvent) => {
-      // Ignore simulated or touch pointer events
-      if (e.pointerType === "touch" || e.pointerType === "pen") return;
-
-      const now = performance.now();
-      if (now - lastSpawnTime.current < THROTTLE_MS) return;
-
-      // Only spawn if mouse has physically moved a few pixels
-      const dx = e.clientX - lastPosition.current.x;
-      const dy = e.clientY - lastPosition.current.y;
-      if (Math.hypot(dx, dy) < 8) return;
-
-      lastSpawnTime.current = now;
-      lastPosition.current = { x: e.clientX, y: e.clientY };
-
-      // Limit active DOM elements to prevent overload
-      if (container.children.length >= MAX_TILES) {
+    const spawnTileAt = (x: number, y: number, angleDeg: number) => {
+      // Evict oldest tile if trail exceeds max length
+      if (container.children.length >= MAX_VISIBLE_TILES) {
         container.firstElementChild?.remove();
       }
 
-      // 2. Select random symbol & color
-      const symbol = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-      const palette = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
+      // Pick sequential color for designed rhythm
+      const color = COLOR_SEQUENCE[colorIndexRef.current % COLOR_SEQUENCE.length];
+      colorIndexRef.current += 1;
 
-      // 3. Small randomized origin offset (-10px to +10px)
-      const offsetX = (Math.random() - 0.5) * 20;
-      const offsetY = (Math.random() - 0.5) * 20;
-      const startX = e.clientX + offsetX;
-      const startY = e.clientY + offsetY;
+      // 45% blank solid color tiles, 55% symbol tiles (per reference)
+      const isBlank = Math.random() < 0.45;
+      const symbol = isBlank
+        ? ""
+        : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
 
-      // 4. Subtle drift vector & rotation
-      const driftX = (Math.random() - 0.5) * 26; // -13px to +13px
-      const driftY = -16 - Math.random() * 22; // -16px to -38px upward drift
-      const startRot = (Math.random() - 0.5) * 16; // -8deg to +8deg
-      const endRot = startRot + (Math.random() - 0.5) * 20; // -15deg to +15deg
-
-      // 5. Create small syntax tile element
       const tile = document.createElement("div");
       tile.textContent = symbol;
+
+      // Flat graphic geometry matching reference
       tile.style.position = "fixed";
       tile.style.left = "0px";
       tile.style.top = "0px";
-      tile.style.width = "20px";
-      tile.style.height = "20px";
-      tile.style.borderRadius = "5px";
-      tile.style.backgroundColor = palette.bg;
-      tile.style.color = palette.text;
+      tile.style.width = `${TILE_WIDTH}px`;
+      tile.style.height = `${TILE_HEIGHT}px`;
+      tile.style.backgroundColor = color;
+      tile.style.color = "#111827"; // Dark flat glyph
+      tile.style.borderRadius = "2px"; // Crisp subtle corners
       tile.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-      tile.style.fontSize = "11px";
+      tile.style.fontSize = "12px";
       tile.style.fontWeight = "700";
       tile.style.display = "flex";
       tile.style.alignItems = "center";
       tile.style.justifyContent = "center";
       tile.style.pointerEvents = "none";
       tile.style.userSelect = "none";
-      tile.style.zIndex = "9999";
-      tile.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.14)";
+      tile.style.zIndex = "99999";
+      tile.style.boxShadow = "none";
       tile.style.willChange = "transform, opacity";
 
       container.appendChild(tile);
 
-      // 6. Smooth GPU-accelerated keyframe animation
+      const halfW = TILE_WIDTH / 2;
+      const halfH = TILE_HEIGHT / 2;
+      const startX = x - halfW;
+      const startY = y - halfH;
+
+      // Stays along the path, holds position, then fades out smoothly (no upward bubble drift)
       const animation = tile.animate(
         [
           {
-            opacity: 0,
-            transform: `translate3d(${startX - 10}px, ${startY - 10}px, 0) scale(0.8) rotate(${startRot}deg)`,
+            opacity: 1,
+            transform: `translate3d(${startX}px, ${startY}px, 0) rotate(${angleDeg}deg) scale(1)`,
           },
           {
             opacity: 1,
-            offset: 0.15,
-            transform: `translate3d(${startX - 10 + driftX * 0.15}px, ${startY - 10 + driftY * 0.15}px, 0) scale(1) rotate(${startRot}deg)`,
-          },
-          {
-            opacity: 0.85,
-            offset: 0.65,
-            transform: `translate3d(${startX - 10 + driftX * 0.65}px, ${startY - 10 + driftY * 0.65}px, 0) scale(0.95) rotate(${(startRot + endRot) / 2}deg)`,
+            offset: 0.45,
+            transform: `translate3d(${startX}px, ${startY}px, 0) rotate(${angleDeg}deg) scale(1)`,
           },
           {
             opacity: 0,
-            transform: `translate3d(${startX - 10 + driftX}px, ${startY - 10 + driftY}px, 0) scale(0.7) rotate(${endRot}deg)`,
+            offset: 1.0,
+            transform: `translate3d(${startX}px, ${startY}px, 0) rotate(${angleDeg}deg) scale(0.92)`,
           },
         ],
         {
-          duration: 800,
-          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          duration: TILE_LIFETIME_MS,
+          easing: "ease-out",
           fill: "forwards",
         }
       );
@@ -154,10 +125,53 @@ export function CursorTrail() {
       };
     };
 
+    const handlePointerMove = (e: PointerEvent) => {
+      if (e.pointerType === "touch" || e.pointerType === "pen") return;
+
+      const currentX = e.clientX;
+      const currentY = e.clientY;
+
+      if (!lastPointRef.current) {
+        lastPointRef.current = { x: currentX, y: currentY };
+        spawnTileAt(currentX, currentY, 0);
+        return;
+      }
+
+      const dx = currentX - lastPointRef.current.x;
+      const dy = currentY - lastPointRef.current.y;
+      const dist = Math.hypot(dx, dy);
+
+      // Only spawn when cursor has moved STEP_DISTANCE along the path
+      if (dist >= STEP_DISTANCE) {
+        const steps = Math.floor(dist / STEP_DISTANCE);
+        const pathAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+        // Subtle tilt aligning gently with movement (-5deg to +5deg)
+        const subtleAngle = Math.max(-5, Math.min(5, ((pathAngle + 180) % 60) - 30));
+
+        for (let i = 1; i <= steps; i++) {
+          const t = i / steps;
+          const px = lastPointRef.current.x + dx * t;
+          const py = lastPointRef.current.y + dy * t;
+          spawnTileAt(px, py, subtleAngle);
+        }
+
+        lastPointRef.current = {
+          x: lastPointRef.current.x + dx * (steps * STEP_DISTANCE / dist),
+          y: lastPointRef.current.y + dy * (steps * STEP_DISTANCE / dist),
+        };
+      }
+    };
+
+    const handlePointerLeave = () => {
+      lastPointRef.current = null;
+    };
+
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    document.addEventListener("pointerleave", handlePointerLeave);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerleave", handlePointerLeave);
       if (container) {
         container.innerHTML = "";
       }
