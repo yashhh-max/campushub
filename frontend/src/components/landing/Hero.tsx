@@ -1,51 +1,13 @@
 "use client";
 
-import React, { useRef } from "react";
 import Link from "next/link";
 import { Sparkles, Calendar, Compass } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { STATS_SUMMARY } from "@/data/sampleData";
-import { HeroArtwork } from "@/components/landing/HeroArtwork";
 
 export function Hero() {
-  const heroRef = useRef<HTMLElement>(null);
-  const cursorCoords = useRef({ x: 0, y: 0 });
-  const isHovered = useRef(false);
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLElement>) => {
-    const hero = heroRef.current;
-    if (!hero) return;
-    const rect = hero.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
-
-    // Normalize coordinates: center = (0, 0), bounds = [-1, 1]
-    const normX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const normY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-
-    cursorCoords.current = {
-      x: Math.max(-1.25, Math.min(1.25, normX)),
-      y: Math.max(-1.25, Math.min(1.25, normY)),
-    };
-    isHovered.current = true;
-  };
-
-  const handlePointerEnter = () => {
-    isHovered.current = true;
-  };
-
-  const handlePointerLeave = () => {
-    cursorCoords.current = { x: 0, y: 0 };
-    isHovered.current = false;
-  };
-
   return (
-    <section
-      ref={heroRef}
-      onPointerMove={handlePointerMove}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
-      className="relative overflow-hidden pt-10 pb-16 md:pt-16 md:pb-24"
-    >
+    <section className="relative overflow-hidden pt-12 pb-16 md:pt-20 md:pb-24">
       {/* Subtle Background Glow Elements */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-indigo-500/15 via-blue-500/10 to-amber-500/10 blur-3xl pointer-events-none -z-10 rounded-full" />
 
@@ -69,21 +31,13 @@ export function Hero() {
         </h1>
 
         {/* Subtitle */}
-        <p className="mt-4 sm:mt-5 text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
+        <p className="mt-6 text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
           Discover hackathons and campus events, join verified student organizations, participate in
           real-time community chat, and check in via secure QR event tickets.
         </p>
 
-        {/* ========================================================
-            DEDICATED GITHUB UNIVERSE-STYLE INTERACTIVE ARTWORK
-            Mascot ("Hubby") + fanning colorful shapes + syntax tiles
-        ======================================================== */}
-        <div className="my-6 sm:my-8 flex justify-center">
-          <HeroArtwork cursorRef={cursorCoords} isHoveredRef={isHovered} />
-        </div>
-
-        {/* Action Buttons (100% static, non-interfered, accessible) */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-lg mx-auto">
+        {/* Action Buttons */}
+        <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-lg mx-auto">
           <Link href="/events" className="w-full sm:w-auto">
             <Button size="lg" className="w-full sm:w-auto group">
               <span>Explore Events</span>
@@ -130,7 +84,7 @@ export function Hero() {
         </div>
 
         {/* Live Metrics Ribbon */}
-        <div className="mt-12 sm:mt-16 pt-8 border-t border-slate-200/80 dark:border-slate-800/80">
+        <div className="mt-14 sm:mt-20 pt-8 border-t border-slate-200/80 dark:border-slate-800/80">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {STATS_SUMMARY.map((stat) => (
               <div

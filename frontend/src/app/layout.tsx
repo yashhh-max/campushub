@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import { CursorTrail } from "@/components/ui/CursorTrail";
 import "./globals.css";
 
 const inter = Inter({
@@ -73,6 +74,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white bg-slate-50 text-slate-900" style={{ colorScheme: 'light' }}>
+        <CursorTrail />
         <AuthProvider>
           {children}
         </AuthProvider>
