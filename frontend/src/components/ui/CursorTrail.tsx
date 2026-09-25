@@ -36,27 +36,23 @@ const SYMBOLS = [
   "_",
 ] as const;
 
-// Subtle stepped baseline offsets matching hand-drawn reference geometry
-const STAGGER_OFFSETS = [0, 2, -1, 1, -2, 2, 0, -1];
-
 const TILE_SIZE = 24; // Square cubes: 24px x 24px
-const STEP_DISTANCE = 22; // Step distance matching tile size for tight 0–2px connected spacing
+const STEP_DISTANCE = 23; // Fixed sampling distance along the cursor trajectory for 0–1px connected spacing
 const MAX_VISIBLE_TILES = 9; // Compact short trail of 6–10 connected blocks
 const TILE_LIFETIME_MS = 600; // Smooth 600ms lifetime
 
 /**
  * CursorTrail
- * Renders a tightly connected chain of small square code-cube tiles along the cursor path:
- * ┌───┐┌───┐┌───┐┌───┐┌───┐
- * │ + ││ { ││ = ││ < ││ ; │
- * └───┘└───┘└───┘└───┘└───┘
- * Features natural stepped/staggered geometry, crisp borders, and exactly one symbol per cube.
+ * Renders a tightly connected chain of square code cubes along the user's real cursor trajectory.
+ * The position of every cube comes entirely from sampling the cursor path at a fixed distance (no hardcoded staggers).
+ * Horizontal: [+][{][=][<][;][>]
+ * Diagonal: stair-stepping along path
+ * Curves / Corners: bends faithfully with the mouse trajectory
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const colorIndexRef = useRef(0);
-  const tileIndexRef = useRef(0);
   const lastSymbolRef = useRef("");
 
   useEffect(() => {
@@ -73,8 +69,8 @@ export function CursorTrail() {
     const container = containerRef.current;
     if (!container) return;
 
-    const spawnTileAt = (x: number, y: number, angleDeg: number) => {
-      // Evict oldest tile if trail exceeds max length to maintain compact chain of 6-10
+    const spawnTileAt = (x: number, y: number) => {
+      // Evict oldest tile if trail exceeds max length to maintain a compact chain of 6-10
       if (container.children.length >= MAX_VISIBLE_TILES) {
         container.firstElementChild?.remove();
       }
@@ -83,7 +79,7 @@ export function CursorTrail() {
       const color = COLOR_SEQUENCE[colorIndexRef.current % COLOR_SEQUENCE.length];
       colorIndexRef.current += 1;
 
-      // Pick exactly ONE symbol (ensuring no consecutive duplicates and zero blank blocks)
+      // Pick exactly ONE symbol (no consecutive duplicates, zero blank blocks)
       let symbol = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
       if (symbol === lastSymbolRef.current) {
         symbol = SYMBOLS[(SYMBOLS.indexOf(symbol) + 1) % SYMBOLS.length];
@@ -94,7 +90,7 @@ export function CursorTrail() {
       const tile = document.createElement("div");
       tile.textContent = symbol;
 
-      // Crisp cube geometry matching hand-drawn reference
+      // Crisp cube geometry
       tile.style.position = "fixed";
       tile.style.left = "0px";
       tile.style.top = "0px";
@@ -103,7 +99,7 @@ export function CursorTrail() {
       tile.style.backgroundColor = color;
       tile.style.color = "#0F172A"; // Dark crisp glyph
       tile.style.border = "1.5px solid #0F172A"; // Crisp physical cube boundary
-      tile.style.borderRadius = "2px"; // Subtle 2px corner radius
+      tile.style.borderRadius = "2px"; // Subtle corner radius
       tile.style.boxSizing = "border-box";
       tile.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
       tile.style.fontSize = "13px";
@@ -123,22 +119,22 @@ export function CursorTrail() {
       const startX = x - halfSize;
       const startY = y - halfSize;
 
-      // Anchored along path, holds position, then fades out smoothly (no upward drift)
+      // Anchored along path, holds position, then fades out smoothly (zero upward drift)
       const animation = tile.animate(
         [
           {
             opacity: 1,
-            transform: `translate3d(${startX}px, ${startY}px, 0) rotate(${angleDeg}deg) scale(1)`,
+            transform: `translate3d(${startX}px, ${startY}px, 0) scale(1)`,
           },
           {
             opacity: 1,
             offset: 0.45,
-            transform: `translate3d(${startX}px, ${startY}px, 0) rotate(${angleDeg}deg) scale(1)`,
+            transform: `translate3d(${startX}px, ${startY}px, 0) scale(1)`,
           },
           {
             opacity: 0,
             offset: 1.0,
-            transform: `translate3d(${startX}px, ${startY}px, 0) rotate(${angleDeg}deg) scale(0.95)`,
+            transform: `translate3d(${startX}px, ${startY}px, 0) scale(0.95)`,
           },
         ],
         {
@@ -161,37 +157,37 @@ export function CursorTrail() {
 
       if (!lastPointRef.current) {
         lastPointRef.current = { x: currentX, y: currentY };
-        spawnTileAt(currentX, currentY, 0);
-        tileIndexRef.current += 1;
+        spawnTileAt(currentX, currentY);
         return;
       }
 
-      const dx = currentX - lastPointRef.current.x;
-      const dy = currentY - lastPointRef.current.y;
-      const dist = Math.hypot(dx, dy);
+      let lastX = lastPointRef.current.x;
+      let lastY = lastPointRef.current.y;
 
-      // Place a new connected cube whenever cursor travels STEP_DISTANCE
+      let dx = currentX - lastX;
+      let dy = currentY - lastY;
+      let dist = Math.hypot(dx, dy);
+
+      // Sample points along the actual path at fixed STEP_DISTANCE intervals
       if (dist >= STEP_DISTANCE) {
-        const steps = Math.floor(dist / STEP_DISTANCE);
+        while (dist >= STEP_DISTANCE) {
+          const ux = dx / dist;
+          const uy = dy / dist;
 
-        for (let i = 1; i <= steps; i++) {
-          const t = i / steps;
-          const rawX = lastPointRef.current.x + dx * t;
-          const rawY = lastPointRef.current.y + dy * t;
+          const nextX: number = lastX + ux * STEP_DISTANCE;
+          const nextY: number = lastY + uy * STEP_DISTANCE;
 
-          // Natural subtle stepped baseline offset from reference drawing
-          const staggerY = STAGGER_OFFSETS[tileIndexRef.current % STAGGER_OFFSETS.length];
-          // Extremely subtle tilt (-1.5deg to +1.5deg) keeping the chain geometric
-          const subtleAngle = (tileIndexRef.current % 2 === 0 ? 1 : -1) * (0.6 + Math.abs(staggerY) * 0.4);
+          spawnTileAt(nextX, nextY);
 
-          spawnTileAt(rawX, rawY + staggerY, subtleAngle);
-          tileIndexRef.current += 1;
+          lastX = nextX;
+          lastY = nextY;
+
+          dx = currentX - lastX;
+          dy = currentY - lastY;
+          dist = Math.hypot(dx, dy);
         }
 
-        lastPointRef.current = {
-          x: lastPointRef.current.x + dx * (steps * STEP_DISTANCE / dist),
-          y: lastPointRef.current.y + dy * (steps * STEP_DISTANCE / dist),
-        };
+        lastPointRef.current = { x: lastX, y: lastY };
       }
     };
 
