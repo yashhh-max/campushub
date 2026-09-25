@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
+import { RevealOnScroll } from "@/components/ui/RevealOnScroll";
 
 const FEATURES = [
   {
@@ -61,7 +62,7 @@ export function Features() {
     <section id="features" className="py-16 md:py-24 border-t border-slate-200/80 dark:border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
-        <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
+        <RevealOnScroll direction="down" duration={500} className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
           <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
             Core Pillars
           </span>
@@ -71,47 +72,54 @@ export function Features() {
           <p className="mt-4 text-base text-slate-600 dark:text-slate-400">
             Engineered from the ground up to replace fragmented emails, paper posters, and disparate chat groups with a clean, high-performance platform.
           </p>
-        </div>
+        </RevealOnScroll>
 
         {/* 4 Feature Cards Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-          {FEATURES.map((feature) => {
+          {FEATURES.map((feature, index) => {
             const Icon = feature.icon;
             return (
-              <Card
+              <RevealOnScroll
                 key={feature.id}
-                className="p-6 sm:p-8 flex flex-col justify-between group hover:border-indigo-300 dark:hover:border-indigo-800/60"
+                direction="up"
+                delay={index * 90}
+                duration={600}
+                className="h-full"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-5">
-                    <div
-                      className={`w-12 h-12 rounded-2xl bg-gradient-to-tr ${feature.color} flex items-center justify-center`}
-                    >
-                      <Icon className="w-6 h-6" />
+                <Card
+                  className="h-full p-6 sm:p-8 flex flex-col justify-between group hover:border-indigo-300 dark:hover:border-indigo-800/60"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-5">
+                      <div
+                        className={`w-12 h-12 rounded-2xl bg-gradient-to-tr ${feature.color} flex items-center justify-center`}
+                      >
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        {feature.badge}
+                      </span>
                     </div>
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                      {feature.badge}
-                    </span>
+
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      {feature.title}
+                    </h3>
+                    <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {feature.description}
+                    </p>
                   </div>
 
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {feature.description}
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80">
-                  <a
-                    href={feature.href}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                  >
-                    <span>{feature.linkText}</span>
-                    <ArrowUpRight className="w-4 h-4" />
-                  </a>
-                </div>
-              </Card>
+                  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                    <a
+                      href={feature.href}
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      <span>{feature.linkText}</span>
+                      <ArrowUpRight className="w-4 h-4" />
+                    </a>
+                  </div>
+                </Card>
+              </RevealOnScroll>
             );
           })}
         </div>

@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { formatDate } from "@/lib/utils";
+import { RevealOnScroll } from "@/components/ui/RevealOnScroll";
 
 const CATEGORIES: Array<"All" | EventCategory> = [
   "All",
@@ -51,7 +52,7 @@ export function EventsPreview() {
     <section id="events" className="py-16 md:py-24 bg-slate-50/60 dark:bg-slate-900/40 border-t border-slate-200/80 dark:border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 gap-4">
+        <RevealOnScroll direction="down" duration={500} className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 mb-2">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
@@ -81,7 +82,7 @@ export function EventsPreview() {
               </button>
             ))}
           </div>
-        </div>
+        </RevealOnScroll>
 
         {/* Events Grid */}
         {filteredEvents.length === 0 ? (
@@ -96,7 +97,7 @@ export function EventsPreview() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEvents.map((event) => {
+            {filteredEvents.map((event, index) => {
               const isRsvpd = !!rsvpdEvents[event.id];
               const displayRsvpCount =
                 (event.rsvpCount ?? event.rsvp_count ?? 0) + (isRsvpd ? 1 : 0);
@@ -110,10 +111,16 @@ export function EventsPreview() {
                   : String(event.organizer || "Student Club");
 
               return (
-                <Card
+                <RevealOnScroll
                   key={event.id}
-                  className="flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all"
+                  direction="up"
+                  delay={index * 80}
+                  duration={650}
+                  className="h-full"
                 >
+                  <Card
+                    className="h-full flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all"
+                  >
                   {/* Card Visual Header */}
                   <div
                     className={`h-28 bg-gradient-to-tr ${event.imageGradient || event.image_gradient || "from-indigo-600 to-blue-700"} p-4 flex flex-col justify-between text-white relative overflow-hidden`}
@@ -204,8 +211,9 @@ export function EventsPreview() {
                     </div>
                   </div>
                 </Card>
-              );
-            })}
+              </RevealOnScroll>
+            );
+          })}
           </div>
         )}
 

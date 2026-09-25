@@ -1,7 +1,7 @@
-"use client";
-
+import Link from "next/link";
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { RevealOnScroll } from "@/components/ui/RevealOnScroll";
 
 export function CTASection() {
   return (
@@ -10,7 +10,7 @@ export function CTASection() {
       <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+      <RevealOnScroll direction="up" duration={650} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold text-indigo-200 border border-white/10 mb-6 backdrop-blur-md">
           <Sparkles className="w-3.5 h-3.5 text-amber-300" />
           <span>CampusHub Ecosystem</span>
@@ -25,14 +25,22 @@ export function CTASection() {
         </p>
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
-          <Button
-            size="lg"
-            className="w-full sm:w-auto bg-white text-indigo-950 hover:bg-slate-100 shadow-lg hover:shadow-xl font-bold"
-            onClick={() => alert("Student account creation with university email verification is scheduled for Phase 2 (JWT).")}
-          >
-            <span>Get Started with Student Email</span>
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </Button>
+          <Link href="/register" className="w-full sm:w-auto">
+            <Button
+              size="lg"
+              className="w-full sm:w-auto bg-white text-indigo-950 hover:bg-slate-100 shadow-lg hover:shadow-xl font-bold cursor-pointer"
+              /*
+               * Sound trigger removed:
+               * Previously on click:
+               * // const audio = new Audio("/sounds/fart.mp3");
+               * // audio.play();
+               * // alert("Student account creation with university email verification is scheduled for Phase 2 (JWT).");
+               */
+            >
+              <span>Get Started with Student Email</span>
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </Link>
           <a href="#events" className="w-full sm:w-auto">
             <Button
               variant="outline"
@@ -58,7 +66,7 @@ export function CTASection() {
             <span>Strict Privacy & Zero Ad-Tracking</span>
           </div>
         </div>
-      </div>
+      </RevealOnScroll>
     </section>
   );
 }

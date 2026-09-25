@@ -59,3 +59,9 @@ coverage/
 backend/htmlcov/
 backend/.coverage
 .playwright-mcp/
+
+# Agent Scratch & Artifacts
+.agents/
+skills-lock.json
+neon.ts
+brag-output*/
