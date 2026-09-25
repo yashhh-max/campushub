@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-// Designed color sequence for rhythmic visual flow
+// Designed color sequence for rhythmic visual flow matching reference
 const COLOR_SEQUENCE = [
   "#E83151", // Hot Pink
   "#3B49DF", // Royal Blue
@@ -36,11 +36,12 @@ const SYMBOLS = [
   "_",
 ] as const;
 
-const TILE_SIZE = 24; // Square cubes: 24px x 24px
-const SECTION_GAP = 14; // Small intentional gap (10–20px) between connected groups
-const MAX_VISIBLE_TILES = 9; // Compact short trail of 6–10 connected blocks
-const TILE_LIFETIME_MS = 600; // Smooth 600ms lifetime
-const GROUP_PATTERN = [2, 4, 3, 2, 3]; // Group sizes matching reference drawing
+// Visual scale tuned for decorative syntax blocks (compact, non-button appearance)
+const TILE_SIZE = 20; // 20px x 20px square cubes
+const TOUCH_STEP = 19.5; // Center-to-center distance for edge-to-edge touching
+const NATURAL_GAP = 5; // Subtle 4–6px natural separation between code block runs
+const MAX_VISIBLE_TILES = 10; // Compact short trail of 6–10 blocks
+const TILE_LIFETIME_MS = 650; // Smooth 650ms lifetime
 
 interface Point {
   x: number;
@@ -55,14 +56,13 @@ interface ActiveCube {
 
 /**
  * CursorTrail
- * Renders a connected chain of small square code cubes following the cursor trajectory.
- * Rules enforced:
- * 1. 24x24px square cubes, exactly one syntax symbol per cube, zero blank tiles.
- * 2. Cubes NEVER overlap or stack on top of each other.
- * 3. Controlled edge-to-edge touching within section groups.
- * 4. Occasional small intentional section gap (14px) between groups matching reference drawing.
- * 5. Position derived purely from the recent cursor path (horizontal is flat, diagonal stair-steps, curves bend naturally, corners turn cleanly).
- * 6. Zero upward drift, zero particle explosion, fades smoothly in place.
+ * Renders a compact, designer-crafted strip of colorful square programming blocks along the cursor path.
+ * - Decorative scale (20x20px), crisp 1.5px dark border, 2px radius.
+ * - Single syntax symbol per cube, zero blank tiles.
+ * - Cubes touch edge-to-edge in continuous sections with subtle 5px natural breaks.
+ * - No stacking or overlapping badges.
+ * - Extremely subtle -0.9° to +0.9° rotation to avoid mechanical rigidity.
+ * - Anchors in place and fades out smoothly without upward drift or scattering.
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,10 +71,10 @@ export function CursorTrail() {
   const lastPlacedPointRef = useRef<Point | null>(null);
 
   const colorIndexRef = useRef(0);
+  const tileIndexRef = useRef(0);
   const lastSymbolRef = useRef("");
-  const groupCountRef = useRef(0);
-  const groupPatternIndexRef = useRef(0);
-  const nextNeedsGapRef = useRef(false);
+  const continuousRunCountRef = useRef(0);
+  const nextTargetRunRef = useRef(3);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastProcessedPosRef = useRef<{ x: number; y: number }>({ x: -1, y: -1 });
 
@@ -93,7 +93,7 @@ export function CursorTrail() {
     if (!container) return;
 
     const spawnTileAt = (x: number, y: number): ActiveCube => {
-      // Evict oldest tile if trail exceeds max length to maintain a compact chain of 6-10
+      // Keep trail compact by evicting oldest tile when reaching max length
       if (activeCubesRef.current.length >= MAX_VISIBLE_TILES) {
         const oldest = activeCubesRef.current.shift();
         if (oldest) {
@@ -101,7 +101,7 @@ export function CursorTrail() {
         }
       }
 
-      // Pick sequential color
+      // Pick sequential vibrant color
       const color = COLOR_SEQUENCE[colorIndexRef.current % COLOR_SEQUENCE.length];
       colorIndexRef.current += 1;
 
@@ -111,6 +111,11 @@ export function CursorTrail() {
         symbol = SYMBOLS[(SYMBOLS.indexOf(symbol) + 1) % SYMBOLS.length];
       }
       lastSymbolRef.current = symbol;
+
+      // Subtle rotation (-0.9deg to +0.9deg) preventing mechanical rigidity
+      const rotIndex = (tileIndexRef.current * 7) % 5 - 2; // -2, -1, 0, 1, 2
+      const rotationDeg = rotIndex * 0.45; // -0.9, -0.45, 0, +0.45, +0.9 deg
+      tileIndexRef.current += 1;
 
       // Create square cube tile
       const tile = document.createElement("div");
@@ -122,12 +127,12 @@ export function CursorTrail() {
       tile.style.width = `${TILE_SIZE}px`;
       tile.style.height = `${TILE_SIZE}px`;
       tile.style.backgroundColor = color;
-      tile.style.color = "#0F172A"; // Dark crisp glyph
+      tile.style.color = "#0F172A"; // Dark crisp syntax glyph
       tile.style.border = "1.5px solid #0F172A"; // Crisp physical cube boundary
       tile.style.borderRadius = "2px"; // Subtle 2px corner radius
       tile.style.boxSizing = "border-box";
       tile.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-      tile.style.fontSize = "13px";
+      tile.style.fontSize = "11px";
       tile.style.fontWeight = "800";
       tile.style.display = "flex";
       tile.style.alignItems = "center";
@@ -136,6 +141,7 @@ export function CursorTrail() {
       tile.style.userSelect = "none";
       tile.style.zIndex = "99999";
       tile.style.boxShadow = "none";
+      tile.style.lineHeight = "1";
       tile.style.willChange = "transform, opacity";
 
       container.appendChild(tile);
@@ -149,17 +155,17 @@ export function CursorTrail() {
         [
           {
             opacity: 1,
-            transform: `translate3d(${startX}px, ${startY}px, 0) scale(1)`,
+            transform: `translate3d(${startX}px, ${startY}px, 0) rotate(${rotationDeg}deg) scale(1)`,
           },
           {
             opacity: 1,
             offset: 0.45,
-            transform: `translate3d(${startX}px, ${startY}px, 0) scale(1)`,
+            transform: `translate3d(${startX}px, ${startY}px, 0) rotate(${rotationDeg}deg) scale(1)`,
           },
           {
             opacity: 0,
             offset: 1.0,
-            transform: `translate3d(${startX}px, ${startY}px, 0) scale(0.95)`,
+            transform: `translate3d(${startX}px, ${startY}px, 0) rotate(${rotationDeg}deg) scale(0.96)`,
           },
         ],
         {
@@ -190,7 +196,7 @@ export function CursorTrail() {
     /**
      * Checks if a candidate position overlaps ANY older active cube in the trail.
      * Excludes the immediate origin cube whose separation is enforced by step distance.
-     * Two 24x24 cubes overlap if both horizontal and vertical distances are strictly < 22px.
+     * Two 20x20 cubes overlap if both horizontal and vertical distances are strictly < 18.5px.
      */
     const doesOverlapOlderCubes = (candX: number, candY: number, origin: Point): boolean => {
       for (let i = 0; i < activeCubesRef.current.length; i++) {
@@ -200,7 +206,7 @@ export function CursorTrail() {
         }
         const dx = Math.abs(candX - cube.x);
         const dy = Math.abs(candY - cube.y);
-        if (dx < 22 && dy < 22) {
+        if (dx < 18.5 && dy < 18.5) {
           return true;
         }
       }
@@ -215,7 +221,7 @@ export function CursorTrail() {
     const findNextCandidate = (
       points: Point[],
       origin: Point,
-      isGap: boolean
+      isNaturalGap: boolean
     ): { point: Point; segmentIndex: number } | null => {
       if (points.length < 2) return null;
 
@@ -228,7 +234,6 @@ export function CursorTrail() {
 
         if (segLen === 0) continue;
 
-        // Sample in 1px steps along the segment for precision
         const stepCount = Math.max(1, Math.ceil(segLen));
         for (let s = 1; s <= stepCount; s++) {
           const t = Math.min(1, s / stepCount);
@@ -237,7 +242,7 @@ export function CursorTrail() {
           const candX = pA.x + (pB.x - pA.x) * t;
           const candY = pA.y + (pB.y - pA.y) * t;
 
-          // Direction from origin
+          // Direction vector from origin
           const chordX = candX - origin.x;
           const chordY = candY - origin.y;
           const chordDist = Math.hypot(chordX, chordY);
@@ -247,9 +252,9 @@ export function CursorTrail() {
           const ux = chordX / chordDist;
           const uy = chordY / chordDist;
           const maxAxis = Math.max(Math.abs(ux), Math.abs(uy));
-          // Minimum step for touching edge (23px along dominant axis)
-          const touchStep = maxAxis > 0.001 ? 23 / maxAxis : 23;
-          const requiredDist = isGap ? touchStep + SECTION_GAP : touchStep;
+          // Minimum step for touching edge along dominant axis
+          const stepTouch = maxAxis > 0.001 ? TOUCH_STEP / maxAxis : TOUCH_STEP;
+          const requiredDist = isNaturalGap ? stepTouch + NATURAL_GAP : stepTouch;
 
           if (currentArc >= requiredDist) {
             // Strict non-overlap collision test against older cubes
@@ -274,7 +279,7 @@ export function CursorTrail() {
       const currentX = e.clientX;
       const currentY = e.clientY;
 
-      // Deduplicate if both pointermove and mousemove fire on the same pixel
+      // Deduplicate identical coordinate events
       if (
         currentX === lastProcessedPosRef.current.x &&
         currentY === lastProcessedPosRef.current.y
@@ -283,14 +288,14 @@ export function CursorTrail() {
       }
       lastProcessedPosRef.current = { x: currentX, y: currentY };
 
-      // Reset idle timer
+      // Reset idle timer (clears path tracking when stationary for 500ms)
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
       }
       idleTimerRef.current = setTimeout(() => {
-        // Cursor stationary for 500ms; reset path state for fresh start on next move
         lastPlacedPointRef.current = null;
         pathPointsRef.current = [];
+        continuousRunCountRef.current = 0;
       }, 500);
 
       // If trail has reset, start at current cursor position
@@ -299,9 +304,8 @@ export function CursorTrail() {
         pathPointsRef.current = [{ x: currentX, y: currentY }];
         spawnTileAt(currentX, currentY);
 
-        groupCountRef.current = 1;
-        const currentTarget = GROUP_PATTERN[groupPatternIndexRef.current % GROUP_PATTERN.length];
-        nextNeedsGapRef.current = groupCountRef.current >= currentTarget;
+        continuousRunCountRef.current = 1;
+        nextTargetRunRef.current = 3;
         return;
       }
 
@@ -316,10 +320,11 @@ export function CursorTrail() {
         const origin = lastPlacedPointRef.current;
         if (!origin) break;
 
+        const needsNaturalGap = continuousRunCountRef.current >= nextTargetRunRef.current;
         const candidate = findNextCandidate(
           pathPointsRef.current,
           origin,
-          nextNeedsGapRef.current
+          needsNaturalGap
         );
 
         if (!candidate) {
@@ -333,16 +338,12 @@ export function CursorTrail() {
         spawnTileAt(point.x, point.y);
         lastPlacedPointRef.current = point;
 
-        // Update grouping logic
-        groupCountRef.current += 1;
-        const currentTarget = GROUP_PATTERN[groupPatternIndexRef.current % GROUP_PATTERN.length];
-
-        if (groupCountRef.current >= currentTarget) {
-          nextNeedsGapRef.current = true;
-          groupCountRef.current = 0;
-          groupPatternIndexRef.current += 1;
+        // Update natural run count (subtle 5px break after a run of 3–4 cubes)
+        if (needsNaturalGap) {
+          continuousRunCountRef.current = 1;
+          nextTargetRunRef.current = nextTargetRunRef.current === 3 ? 4 : 3;
         } else {
-          nextNeedsGapRef.current = false;
+          continuousRunCountRef.current += 1;
         }
 
         // Advance polyline path starting from the newly placed point
@@ -356,6 +357,7 @@ export function CursorTrail() {
     const handlePointerLeave = () => {
       lastPlacedPointRef.current = null;
       pathPointsRef.current = [];
+      continuousRunCountRef.current = 0;
     };
 
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
