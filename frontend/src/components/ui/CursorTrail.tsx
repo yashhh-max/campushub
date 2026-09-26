@@ -40,11 +40,12 @@ const SYMBOLS = [
 // 20px x 20px square syntax block
 const CUBE_SIZE = 20;
 
-// Exact 20px center-to-center spacing ensures neighboring cubes touch edge-to-edge without covering each other
-const STEP_DISTANCE = 20;
+// Minimum separation between square centers to prevent visible interior overlap
+// Two 20px squares overlap if and only if |dx| < MIN_SEPARATION and |dy| < MIN_SEPARATION
+const MIN_SEPARATION = 19.5;
 
 // Compact trail length of 8–12 visible cubes
-const MAX_VISIBLE_CUBES = 10;
+const MAX_VISIBLE_CUBES = 11;
 
 // Fade duration in milliseconds
 const FADE_LIFETIME_MS = 600;
@@ -57,20 +58,13 @@ interface ActiveCubeRecord {
 
 /**
  * CursorTrail
- * Clean, non-overlapping code-block cursor trail.
+ * Real-trajectory code-block cursor trail.
  * - Every block: 20px × 20px square, exactly ONE syntax symbol, flat color, 1px dark border, 1px radius, 0° rotation.
- * - Axis-aligned 20px step decomposition along the cursor trajectory:
- *   [>][−][=][{][+][<][;][*]
- * - Blocks touch cleanly edge-to-edge without covering each other (zero diagonal corner stacking or card-tower cascade).
- * - When moving horizontally: clean horizontal ribbon [=][{][<][+][;][>].
- * - When moving vertically: clean vertical ribbon.
- * - When turning 90°: natural corner transition.
- * - When moving diagonally: natural staircase of edge-connected squares:
- *   [>][=]
- *        [{][+]
- *             [;]
- * - No grid generator, no cluster engine, no random offsets, no diagonal corner overlap.
- * - Background layer (z-index: 5, pointer-events: none, renders behind buttons, photos, cards, and text).
+ * - Follows the TRUE cursor trajectory (e.g. 30°, 45°, horizontal, vertical, curves, turns) without grid or axis-aligned snapping.
+ * - Dense vector interpolation along the path between pointer events.
+ * - Non-overlapping constraint: skips candidate positions that would visibly overlap existing cubes.
+ * - Anchored in place, fades smoothly without upward drift or particle scattering.
+ * - Background layer (z-index: 5, pointer-events: none, renders behind foreground buttons, photos, cards, and text).
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -93,20 +87,24 @@ export function CursorTrail() {
     const container = containerRef.current;
     if (!container) return;
 
-    const hasOverlapWithActive = (x: number, y: number): boolean => {
+    // Bounding-box overlap check: two 20px squares overlap iff both |dx| < MIN_SEPARATION and |dy| < MIN_SEPARATION
+    const doesOverlapActive = (x: number, y: number): boolean => {
       for (let i = 0; i < activeCubesRef.current.length; i++) {
         const c = activeCubesRef.current[i];
-        if (Math.abs(x - c.x) < 14 && Math.abs(y - c.y) < 14) {
+        if (
+          Math.abs(x - c.x) < MIN_SEPARATION &&
+          Math.abs(y - c.y) < MIN_SEPARATION
+        ) {
           return true;
         }
       }
       return false;
     };
 
-    const spawnCube = (x: number, y: number) => {
-      // Prevent duplicate cubes on the exact same coordinate if cursor reverses direction
-      if (hasOverlapWithActive(x, y)) {
-        return;
+    const spawnCube = (x: number, y: number): boolean => {
+      // If candidate position would overlap an active cube, do not spawn
+      if (doesOverlapActive(x, y)) {
+        return false;
       }
 
       // Evict oldest cube when reaching max compact trail length to maintain short continuous snake
@@ -183,6 +181,8 @@ export function CursorTrail() {
           activeCubesRef.current.splice(idx, 1);
         }
       };
+
+      return true;
     };
 
     const handlePointerMove = (e: PointerEvent) => {
@@ -198,8 +198,10 @@ export function CursorTrail() {
         return;
       }
 
-      let dx = currentX - lastPosRef.current.x;
-      let dy = currentY - lastPosRef.current.y;
+      const prevX = lastPosRef.current.x;
+      const prevY = lastPosRef.current.y;
+      const dx = currentX - prevX;
+      const dy = currentY - prevY;
       const dist = Math.hypot(dx, dy);
 
       // Discard massive window jumps (e.g. alt-tab or multi-monitor teleport > 250px)
@@ -209,33 +211,28 @@ export function CursorTrail() {
         return;
       }
 
-      // Axis-aligned edge-connected step decomposition:
-      // Steps along dominant displacement axis so cubes touch along entire 20px edges
-      // This completely eliminates diagonal corner overlap and card-stacking cascades
-      let iterations = 0;
-      while (
-        (Math.abs(dx) >= STEP_DISTANCE || Math.abs(dy) >= STEP_DISTANCE) &&
-        iterations < 15
-      ) {
-        iterations++;
-        let stepX = 0;
-        let stepY = 0;
-
-        if (Math.abs(dx) >= Math.abs(dy)) {
-          stepX = Math.sign(dx) * STEP_DISTANCE;
-        } else {
-          stepY = Math.sign(dy) * STEP_DISTANCE;
-        }
-
-        const nextX: number = lastPosRef.current.x + stepX;
-        const nextY: number = lastPosRef.current.y + stepY;
-
-        spawnCube(nextX, nextY);
-        lastPosRef.current = { x: nextX, y: nextY };
-
-        dx = currentX - nextX;
-        dy = currentY - nextY;
+      if (dist < 1) {
+        return;
       }
+
+      // Dense vector interpolation along the actual cursor trajectory P_prev -> P_curr
+      // Marches in 2px step increments along the real path vector
+      const stepIncrement = 2;
+      const steps = Math.floor(dist / stepIncrement);
+
+      for (let i = 1; i <= steps; i++) {
+        const t = (i * stepIncrement) / dist;
+        const candidateX = prevX + dx * t;
+        const candidateY = prevY + dy * t;
+
+        // Attempts to spawn at actual trajectory point; if it does not overlap, spawns and records
+        spawnCube(candidateX, candidateY);
+      }
+
+      // Always test the exact endpoint of the pointer event
+      spawnCube(currentX, currentY);
+
+      lastPosRef.current = { x: currentX, y: currentY };
     };
 
     const handlePointerLeave = () => {
