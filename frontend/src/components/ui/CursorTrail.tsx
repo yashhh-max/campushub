@@ -54,10 +54,13 @@ const TILE_LIFETIME_MS = 600; // Smooth 600ms fade lifetime
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastPlacedPointRef = useRef<{ x: number; y: number } | null>(null);
+  const lastAxisRef = useRef<"x" | "y" | null>(null);
+  const axisRunRef = useRef(0);
   const colorIndexRef = useRef(0);
   const lastSymbolRef = useRef("");
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastProcessedPosRef = useRef<{ x: number; y: number }>({ x: -1, y: -1 });
+  const activeTilesRef = useRef<Array<{ x: number; y: number; el: HTMLDivElement }>>([]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -74,9 +77,18 @@ export function CursorTrail() {
     if (!container) return;
 
     const spawnTileAt = (x: number, y: number) => {
+      // Prevent overlap with existing active cubes
+      for (let i = 0; i < activeTilesRef.current.length; i++) {
+        const item = activeTilesRef.current[i];
+        if (Math.abs(x - item.x) < 14 && Math.abs(y - item.y) < 14) {
+          return false;
+        }
+      }
+
       // Keep trail compact by evicting oldest tile when reaching max length
-      if (container.children.length >= MAX_VISIBLE_TILES) {
-        container.firstElementChild?.remove();
+      if (activeTilesRef.current.length >= MAX_VISIBLE_TILES) {
+        const oldest = activeTilesRef.current.shift();
+        oldest?.el.remove();
       }
 
       // Pick sequential solid color
@@ -102,7 +114,7 @@ export function CursorTrail() {
       tile.style.backgroundColor = color;
       tile.style.color = "#0F172A"; // Dark crisp syntax glyph
       tile.style.border = "1px solid #0F172A"; // Thin dark border
-      tile.style.borderRadius = "1.5px"; // Very small corner radius
+      tile.style.borderRadius = "1.5px"; // Very small corner radius (0-2px)
       tile.style.boxSizing = "border-box";
       tile.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
       tile.style.fontSize = "12px";
@@ -118,6 +130,9 @@ export function CursorTrail() {
       tile.style.willChange = "opacity";
 
       container.appendChild(tile);
+
+      const entry = { x, y, el: tile };
+      activeTilesRef.current.push(entry);
 
       const halfSize = TILE_SIZE / 2;
       const startX = x - halfSize;
@@ -150,10 +165,15 @@ export function CursorTrail() {
 
       animation.onfinish = () => {
         tile.remove();
-        if (container.children.length === 0) {
+        activeTilesRef.current = activeTilesRef.current.filter((item) => item.el !== tile);
+        if (activeTilesRef.current.length === 0) {
           lastPlacedPointRef.current = null;
+          lastAxisRef.current = null;
+          axisRunRef.current = 0;
         }
       };
+
+      return true;
     };
 
     const handleMove = (e: MouseEvent | PointerEvent) => {
@@ -177,11 +197,15 @@ export function CursorTrail() {
       }
       idleTimerRef.current = setTimeout(() => {
         lastPlacedPointRef.current = null;
+        lastAxisRef.current = null;
+        axisRunRef.current = 0;
       }, 400);
 
       // If trail has reset, start at current cursor position
       if (!lastPlacedPointRef.current) {
         lastPlacedPointRef.current = { x: currentX, y: currentY };
+        lastAxisRef.current = null;
+        axisRunRef.current = 0;
         spawnTileAt(currentX, currentY);
         return;
       }
@@ -193,18 +217,57 @@ export function CursorTrail() {
       let dy = currentY - lastY;
       let dist = Math.hypot(dx, dy);
 
-      // Dominant axis step: 19px along dominant axis ensures adjacent 20px cubes touch edge-to-edge
+      // Subtle perpendicular slope shift (clamped to [-2px, +2px]) keeps edge overlap >= 18px
+      const MAX_SUBTLE_SHIFT = 2;
+
+      // Place attached blocks whenever cursor travels ATTACHED_STEP
       if (dist >= ATTACHED_STEP) {
         while (dist >= ATTACHED_STEP) {
-          const ux = dx / dist;
-          const uy = dy / dist;
-          const maxAxis = Math.max(Math.abs(ux), Math.abs(uy));
-          const step = maxAxis > 0.001 ? ATTACHED_STEP / maxAxis : ATTACHED_STEP;
+          const absDx = Math.abs(dx);
+          const absDy = Math.abs(dy);
 
-          if (dist < step) break;
+          // Edge-connection decision:
+          // Adjacent blocks must connect by a full edge (horizontal face or vertical face).
+          // Diagonal motion uses short runs of 2 blocks along primary axis then steps,
+          // guaranteeing [■][■] or [■][■][■] shapes and zero corner-only diagonal chains.
+          let stepAxis: "x" | "y";
+          if (absDx >= 1.6 * absDy) {
+            stepAxis = "x";
+          } else if (absDy >= 1.6 * absDx) {
+            stepAxis = "y";
+          } else {
+            // Angled/diagonal trajectory:
+            // Allow up to 2 steps on the current axis before stepping orthogonally
+            if (axisRunRef.current >= 2) {
+              stepAxis = lastAxisRef.current === "x" ? "y" : "x";
+            } else if (absDx >= absDy) {
+              stepAxis = "x";
+            } else {
+              stepAxis = "y";
+            }
+          }
 
-          const nextX = lastX + ux * step;
-          const nextY = lastY + uy * step;
+          let nextX: number;
+          let nextY: number;
+
+          if (stepAxis === "x") {
+            const sx = absDx > 0 ? Math.sign(dx) * ATTACHED_STEP : ATTACHED_STEP;
+            const sy = absDx > 0 ? Math.max(-MAX_SUBTLE_SHIFT, Math.min(MAX_SUBTLE_SHIFT, (dy / absDx) * 2)) : 0;
+            nextX = lastX + sx;
+            nextY = lastY + sy;
+          } else {
+            const sy = absDy > 0 ? Math.sign(dy) * ATTACHED_STEP : ATTACHED_STEP;
+            const sx = absDy > 0 ? Math.max(-MAX_SUBTLE_SHIFT, Math.min(MAX_SUBTLE_SHIFT, (dx / absDy) * 2)) : 0;
+            nextX = lastX + sx;
+            nextY = lastY + sy;
+          }
+
+          if (stepAxis === lastAxisRef.current) {
+            axisRunRef.current += 1;
+          } else {
+            lastAxisRef.current = stepAxis;
+            axisRunRef.current = 1;
+          }
 
           spawnTileAt(nextX, nextY);
 
@@ -222,6 +285,8 @@ export function CursorTrail() {
 
     const handlePointerLeave = () => {
       lastPlacedPointRef.current = null;
+      lastAxisRef.current = null;
+      axisRunRef.current = 0;
     };
 
     window.addEventListener("pointermove", handleMove, { passive: true });
@@ -235,6 +300,8 @@ export function CursorTrail() {
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
       }
+      activeTilesRef.current.forEach((t) => t.el.remove());
+      activeTilesRef.current = [];
       if (container) {
         container.innerHTML = "";
       }
