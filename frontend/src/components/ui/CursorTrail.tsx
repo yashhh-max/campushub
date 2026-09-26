@@ -4,19 +4,21 @@ import { useEffect, useRef } from "react";
 
 // Curated solid flat color sequence matching reference
 const COLOR_SEQUENCE = [
-  "#E83151", // Hot Pink
+  "#E83151", // Hot Coral / Red
   "#3B49DF", // Royal Blue
   "#B892FF", // Lavender / Lilac
   "#D49B00", // Mustard Gold
-  "#C2410C", // Burnt Terracotta
+  "#C2410C", // Terracotta Orange
   "#4338CA", // Deep Indigo
   "#A78BFA", // Light Purple
   "#CA8A04", // Ochre Yellow
   "#10B981", // Emerald Green
   "#EC4899", // Vibrant Pink
+  "#0284C7", // Sky Blue
+  "#F59E0B", // Amber
 ];
 
-// Single-character code/syntax symbols (strictly one per cube)
+// Single-character code/syntax symbols (strictly one character per cube)
 const SYMBOLS = [
   "+",
   "-",
@@ -35,29 +37,29 @@ const SYMBOLS = [
   "*",
 ] as const;
 
-// 20px square syntax block
+// 20px x 20px square syntax block
 const CUBE_SIZE = 20;
 
-// Controlled 18px trail spacing between consecutive cubes (intentional 2px overlap for tightly attached appearance)
+// Controlled 18px trail spacing between consecutive cubes (2px overlap ensuring zero visual gaps)
 const STEP_DISTANCE = 18;
 
 // Compact trail length of 8–12 visible cubes
-const MAX_VISIBLE_CUBES = 10;
+const MAX_VISIBLE_CUBES = 11;
 
-// Smooth fade lifetime in milliseconds
+// Fade duration in milliseconds
 const FADE_LIFETIME_MS = 600;
 
 /**
  * CursorTrail
- * Compact, connected code-block cursor trail.
- * - Every block: 20px × 20px square, exactly one syntax symbol, solid color, 1px dark border, 1.5px radius, 0° rotation.
- * - Path-sampled cursor history at controlled 18px spacing: ensures a continuous, unbroken chain of attached blocks.
- * - When moving horizontally: [=][{][<][+][;][>]
- * - When turning: natural corner following mouse path.
- * - When moving diagonally: natural connected diagonal.
- * - Zero grid generator, zero integer lattice, zero forced clusters, zero perpendicular stagger.
- * - Position determined purely by cursor movement; no random positioning or particle scattering.
- * - Decorative background layer (z-index: 5, pointer-events: none, renders behind buttons/photos/cards).
+ * Dense, continuous code-block cursor trail.
+ * - Every block: 20px × 20px square, exactly ONE syntax symbol, flat color, 1px dark border, 1px radius, 0° rotation.
+ * - Dense path sampling at 18px intervals along actual cursor movement:
+ *   [=][{][<][+][;][>][(][}]
+ * - Absolutely zero gaps between adjacent cubes: blocks touch and share 1-2px border overlap.
+ * - Continuous path interpolation: large pointer jumps (e.g. 50-100px) are interpolated along P0 -> P1 without skipping.
+ * - No artificial random offset, no scatter, no grid lattice, no breathing gaps or modulo spacing.
+ * - Anchored in place, smooth fade-out without upward drift or movement.
+ * - Background layer (z-index: 5, pointer-events: none, sits behind foreground buttons, photos, cards, and text).
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -65,7 +67,6 @@ export function CursorTrail() {
   const activeCubesRef = useRef<HTMLDivElement[]>([]);
   const colorIndexRef = useRef(0);
   const lastSymbolRef = useRef("");
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -82,7 +83,7 @@ export function CursorTrail() {
     if (!container) return;
 
     const spawnCube = (x: number, y: number) => {
-      // Evict oldest cube when reaching max compact trail length
+      // Evict oldest cube when reaching max compact trail length to maintain short continuous snake
       if (activeCubesRef.current.length >= MAX_VISIBLE_CUBES) {
         const oldest = activeCubesRef.current.shift();
         if (oldest) {
@@ -90,11 +91,11 @@ export function CursorTrail() {
         }
       }
 
-      // Pick sequential solid color
+      // Pick sequential solid color from palette
       const color = COLOR_SEQUENCE[colorIndexRef.current % COLOR_SEQUENCE.length];
       colorIndexRef.current += 1;
 
-      // Pick exactly ONE symbol (no consecutive duplicate symbols, no blank blocks)
+      // Pick exactly ONE symbol (no consecutive duplicates, zero blank blocks)
       let symbol = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
       if (symbol === lastSymbolRef.current) {
         symbol = SYMBOLS[(SYMBOLS.indexOf(symbol) + 1) % SYMBOLS.length];
@@ -116,11 +117,11 @@ export function CursorTrail() {
       cube.style.backgroundColor = color;
       cube.style.color = "#0F172A"; // Dark crisp syntax glyph
       cube.style.border = "1px solid #0F172A"; // Thin dark border
-      cube.style.borderRadius = "1.5px"; // 0-2px border radius
+      cube.style.borderRadius = "1px"; // Subtle square corners (0–2px)
       cube.style.boxSizing = "border-box";
-      cube.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-      cube.style.fontSize = "12px";
-      cube.style.fontWeight = "800";
+      cube.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
+      cube.style.fontSize = "11.5px";
+      cube.style.fontWeight = "700";
       cube.style.display = "flex";
       cube.style.alignItems = "center";
       cube.style.justifyContent = "center";
@@ -128,16 +129,18 @@ export function CursorTrail() {
       cube.style.userSelect = "none";
       cube.style.zIndex = "5"; // Behind page content / buttons / photos
       cube.style.lineHeight = "1";
+      cube.style.padding = "0";
+      cube.style.margin = "0";
       cube.style.willChange = "opacity";
 
       container.appendChild(cube);
       activeCubesRef.current.push(cube);
 
-      // Anchored in place, fades smoothly without upward drift or rotation
+      // Stays fixed in place, fades smoothly without upward drift or rotation
       const anim = cube.animate(
         [
           { opacity: 1 },
-          { opacity: 1, offset: 0.45 },
+          { opacity: 1, offset: 0.5 },
           { opacity: 0, offset: 1.0 },
         ],
         {
@@ -149,26 +152,21 @@ export function CursorTrail() {
 
       anim.onfinish = () => {
         cube.remove();
-        activeCubesRef.current = activeCubesRef.current.filter((c) => c !== cube);
+        const idx = activeCubesRef.current.indexOf(cube);
+        if (idx !== -1) {
+          activeCubesRef.current.splice(idx, 1);
+        }
       };
     };
 
-    const handlePointerMove = (e: MouseEvent | PointerEvent) => {
-      if ("pointerType" in e && (e.pointerType === "touch" || e.pointerType === "pen")) return;
+    const handlePointerMove = (e: PointerEvent) => {
+      if (e.pointerType === "touch" || e.pointerType === "pen") return;
 
       const currentX = e.clientX;
       const currentY = e.clientY;
 
-      // Clear trail origin when mouse rests for 400ms
-      if (idleTimerRef.current) {
-        clearTimeout(idleTimerRef.current);
-      }
-      idleTimerRef.current = setTimeout(() => {
-        lastPosRef.current = null;
-      }, 400);
-
-      // First movement event: initialize origin and place first cube
-      if (!lastPosRef.current) {
+      // If trail had completely vanished or first movement, initialize origin cleanly
+      if (!lastPosRef.current || activeCubesRef.current.length === 0) {
         lastPosRef.current = { x: currentX, y: currentY };
         spawnCube(currentX, currentY);
         return;
@@ -178,7 +176,15 @@ export function CursorTrail() {
       let dy = currentY - lastPosRef.current.y;
       let dist = Math.hypot(dx, dy);
 
-      // Resample along cursor path at controlled STEP_DISTANCE intervals (18px)
+      // Discard massive window jumps (e.g. alt-tab or multi-monitor teleport > 250px)
+      if (dist > 250) {
+        lastPosRef.current = { x: currentX, y: currentY };
+        spawnCube(currentX, currentY);
+        return;
+      }
+
+      // Dense path interpolation along P0 -> P1 at exact STEP_DISTANCE intervals (18px)
+      // Eliminates gaps during fast cursor movements
       while (dist >= STEP_DISTANCE) {
         const ratio: number = STEP_DISTANCE / dist;
         const nextX: number = lastPosRef.current.x + dx * ratio;
@@ -187,8 +193,8 @@ export function CursorTrail() {
         spawnCube(nextX, nextY);
         lastPosRef.current = { x: nextX, y: nextY };
 
-        dx = currentX - lastPosRef.current.x;
-        dy = currentY - lastPosRef.current.y;
+        dx = currentX - nextX;
+        dy = currentY - nextY;
         dist = Math.hypot(dx, dy);
       }
     };
@@ -197,17 +203,13 @@ export function CursorTrail() {
       lastPosRef.current = null;
     };
 
+    // Attach single pointermove listener on window
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    window.addEventListener("mousemove", handlePointerMove, { passive: true });
-    document.addEventListener("pointerleave", handlePointerLeave);
+    document.documentElement.addEventListener("pointerleave", handlePointerLeave);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("mousemove", handlePointerMove);
-      document.removeEventListener("pointerleave", handlePointerLeave);
-      if (idleTimerRef.current) {
-        clearTimeout(idleTimerRef.current);
-      }
+      document.documentElement.removeEventListener("pointerleave", handlePointerLeave);
       activeCubesRef.current.forEach((c) => c.remove());
       activeCubesRef.current = [];
       if (container) {
@@ -224,3 +226,4 @@ export function CursorTrail() {
     />
   );
 }
+
