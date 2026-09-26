@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-// Curated solid flat color sequence
+// Curated solid flat color sequence matching reference
 const COLOR_SEQUENCE = [
   "#E83151", // Hot Pink
   "#3B49DF", // Royal Blue
@@ -33,34 +33,31 @@ const SYMBOLS = [
   ";",
   "#",
   "*",
-  "_",
 ] as const;
 
 // 20px square syntax block
 const CUBE_SIZE = 20;
 
-// Only create a new cube when the cursor has moved at least one cube width from the last cube
-const MIN_DISTANCE = 20;
+// Controlled 18px trail spacing between consecutive cubes (intentional 2px overlap for tightly attached appearance)
+const STEP_DISTANCE = 18;
 
-// Keep approximately 6–10 visible cubes
-const MAX_VISIBLE_CUBES = 8;
+// Compact trail length of 8–12 visible cubes
+const MAX_VISIBLE_CUBES = 10;
 
 // Smooth fade lifetime in milliseconds
 const FADE_LIFETIME_MS = 600;
 
 /**
  * CursorTrail
- * Pure cursor-driven trail of small square syntax blocks.
- * - Every block: 20px × 20px square, exactly one syntax symbol, colorful solid background, thin dark border.
- * - Real pixel coordinates: no grid snapping, no lattice, no integer cell division.
- * - Mouse movement directly determines every cube position:
- *     - Horizontal movement -> horizontal trail [=][{][<][+][;][>]
- *     - Vertical movement   -> vertical trail [=][*][#][}][>]
- *     - Turns / curves      -> natural trail matching mouse trajectory
- * - Zero artificial pattern generation: no synthetic intermediate steps, no clusters, no forced stagger.
- * - Distance-based sampling: creates a cube only when cursor moves >= MIN_DISTANCE from last cube.
- * - Fades in place smoothly; no upward particle drift or scattering.
- * - Background layer: z-index: 5, pointer-events: none, renders behind buttons/photos/cards.
+ * Compact, connected code-block cursor trail.
+ * - Every block: 20px × 20px square, exactly one syntax symbol, solid color, 1px dark border, 1.5px radius, 0° rotation.
+ * - Path-sampled cursor history at controlled 18px spacing: ensures a continuous, unbroken chain of attached blocks.
+ * - When moving horizontally: [=][{][<][+][;][>]
+ * - When turning: natural corner following mouse path.
+ * - When moving diagonally: natural connected diagonal.
+ * - Zero grid generator, zero integer lattice, zero forced clusters, zero perpendicular stagger.
+ * - Position determined purely by cursor movement; no random positioning or particle scattering.
+ * - Decorative background layer (z-index: 5, pointer-events: none, renders behind buttons/photos/cards).
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,7 +82,7 @@ export function CursorTrail() {
     if (!container) return;
 
     const spawnCube = (x: number, y: number) => {
-      // Evict oldest cube when reaching max trail length
+      // Evict oldest cube when reaching max compact trail length
       if (activeCubesRef.current.length >= MAX_VISIBLE_CUBES) {
         const oldest = activeCubesRef.current.shift();
         if (oldest) {
@@ -136,7 +133,7 @@ export function CursorTrail() {
       container.appendChild(cube);
       activeCubesRef.current.push(cube);
 
-      // Stays in place, fades smoothly without upward drift or rotation
+      // Anchored in place, fades smoothly without upward drift or rotation
       const anim = cube.animate(
         [
           { opacity: 1 },
@@ -162,13 +159,13 @@ export function CursorTrail() {
       const currentX = e.clientX;
       const currentY = e.clientY;
 
-      // Clear trail origin when mouse rests for 350ms
+      // Clear trail origin when mouse rests for 400ms
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
       }
       idleTimerRef.current = setTimeout(() => {
         lastPosRef.current = null;
-      }, 350);
+      }, 400);
 
       // First movement event: initialize origin and place first cube
       if (!lastPosRef.current) {
@@ -177,16 +174,22 @@ export function CursorTrail() {
         return;
       }
 
-      // Real Euclidean distance from last spawned cube position
-      const distance = Math.hypot(
-        currentX - lastPosRef.current.x,
-        currentY - lastPosRef.current.y
-      );
+      let dx = currentX - lastPosRef.current.x;
+      let dy = currentY - lastPosRef.current.y;
+      let dist = Math.hypot(dx, dy);
 
-      // Only create a new cube when the cursor has moved at least one cube width from the last cube
-      if (distance >= MIN_DISTANCE) {
-        spawnCube(currentX, currentY);
-        lastPosRef.current = { x: currentX, y: currentY };
+      // Resample along cursor path at controlled STEP_DISTANCE intervals (18px)
+      while (dist >= STEP_DISTANCE) {
+        const ratio: number = STEP_DISTANCE / dist;
+        const nextX: number = lastPosRef.current.x + dx * ratio;
+        const nextY: number = lastPosRef.current.y + dy * ratio;
+
+        spawnCube(nextX, nextY);
+        lastPosRef.current = { x: nextX, y: nextY };
+
+        dx = currentX - lastPosRef.current.x;
+        dy = currentY - lastPosRef.current.y;
+        dist = Math.hypot(dx, dy);
       }
     };
 
