@@ -36,32 +36,41 @@ const SYMBOLS = [
   "_",
 ] as const;
 
-// Visual scale & attachment parameters
+// Visual scale & spacing parameters
 const TILE_SIZE = 20; // 20px square syntax block
-const ATTACHED_STEP = 19; // 19px center-to-center distance for tightly attached 1px shared border
+const STEP_DISTANCE = 19; // 19px center-to-center distance for tightly attached 1px shared border
 const MAX_VISIBLE_TILES = 10; // Compact trail length of 6–10 blocks
 const TILE_LIFETIME_MS = 600; // Smooth 600ms fade lifetime
 
+interface ActiveTile {
+  id: number;
+  x: number;
+  y: number;
+  el: HTMLDivElement;
+}
+
 /**
  * CursorTrail
- * Renders a compact, designer-crafted sequence of attached square syntax blocks following the cursor.
+ * Simple, natural path-sampled cursor trail of small square syntax blocks.
  * - 20px square cubes with thin dark border (1px) and very small corner radius (1.5px).
- * - Exactly ONE symbol per cube, centered, flat solid colors.
- * - Tightly attached adjacent edges ([=][{][<][+][-][/]) without artificial gaps or rigid groupings.
- * - 0° rotation: clean, square, non-button appearance.
- * - Fades in place smoothly with zero upward drift or particle scattering.
+ * - Exactly ONE code symbol per cube, centered, flat solid colors.
+ * - 0° rotation, no upward drift, no particle scattering, fades in place smoothly.
+ * - Cursor path directly controls the geometry:
+ *     - Horizontal movement -> straight horizontal chain [=][{][<][+][;][>]
+ *     - Vertical movement   -> straight vertical chain
+ *     - Turning movement    -> natural corner
+ *     - Diagonal movement   -> natural stepped diagonal
+ * - Zero artificial clustering, no grid puzzle, no forced perpendicular staggers.
+ * - Background decorative layer (z-index: 5, pointer-events: none).
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastGridRef = useRef<{ gx: number; gy: number } | null>(null);
-  const currentAxisRef = useRef<"x" | "y" | null>(null);
-  const runLengthRef = useRef(0);
-  const staggerSideRef = useRef(1);
+  const activeTilesRef = useRef<ActiveTile[]>([]);
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+  const nextIdRef = useRef(1);
   const colorIndexRef = useRef(0);
   const lastSymbolRef = useRef("");
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastProcessedPosRef = useRef<{ x: number; y: number }>({ x: -1, y: -1 });
-  const occupiedCellsRef = useRef<Map<string, { gx: number; gy: number; el: HTMLDivElement }>>(new Map());
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,19 +86,25 @@ export function CursorTrail() {
     const container = containerRef.current;
     if (!container) return;
 
-    const spawnTileAtGrid = (gx: number, gy: number): boolean => {
-      const key = `${gx},${gy}`;
-      if (occupiedCellsRef.current.has(key)) {
-        return false;
+    const isCollidingWithActive = (x: number, y: number): boolean => {
+      for (const t of activeTilesRef.current) {
+        if (Math.abs(t.x - x) < 17 && Math.abs(t.y - y) < 17) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const spawnTile = (x: number, y: number): void => {
+      if (isCollidingWithActive(x, y)) {
+        return;
       }
 
       // Evict oldest tile when reaching max compact trail length
-      if (occupiedCellsRef.current.size >= MAX_VISIBLE_TILES) {
-        const oldestKey = occupiedCellsRef.current.keys().next().value;
-        if (oldestKey) {
-          const oldest = occupiedCellsRef.current.get(oldestKey);
-          oldest?.el.remove();
-          occupiedCellsRef.current.delete(oldestKey);
+      if (activeTilesRef.current.length >= MAX_VISIBLE_TILES) {
+        const oldest = activeTilesRef.current.shift();
+        if (oldest) {
+          oldest.el.remove();
         }
       }
 
@@ -108,9 +123,12 @@ export function CursorTrail() {
       const tile = document.createElement("div");
       tile.textContent = symbol;
 
+      const left = Math.round(x - TILE_SIZE / 2);
+      const top = Math.round(y - TILE_SIZE / 2);
+
       tile.style.position = "fixed";
-      tile.style.left = "0px";
-      tile.style.top = "0px";
+      tile.style.left = `${left}px`;
+      tile.style.top = `${top}px`;
       tile.style.width = `${TILE_SIZE}px`;
       tile.style.height = `${TILE_SIZE}px`;
       tile.style.backgroundColor = color;
@@ -133,31 +151,16 @@ export function CursorTrail() {
 
       container.appendChild(tile);
 
-      occupiedCellsRef.current.set(key, { gx, gy, el: tile });
-
-      // Physical center coordinates on grid
-      const pixelX = gx * ATTACHED_STEP;
-      const pixelY = gy * ATTACHED_STEP;
-      const startX = pixelX - TILE_SIZE / 2;
-      const startY = pixelY - TILE_SIZE / 2;
+      const tileId = nextIdRef.current++;
+      const tileRecord: ActiveTile = { id: tileId, x, y, el: tile };
+      activeTilesRef.current.push(tileRecord);
 
       // Anchored in place, fades smoothly without upward drift or rotation
       const animation = tile.animate(
         [
-          {
-            opacity: 1,
-            transform: `translate3d(${startX}px, ${startY}px, 0)`,
-          },
-          {
-            opacity: 1,
-            offset: 0.45,
-            transform: `translate3d(${startX}px, ${startY}px, 0)`,
-          },
-          {
-            opacity: 0,
-            offset: 1.0,
-            transform: `translate3d(${startX}px, ${startY}px, 0)`,
-          },
+          { opacity: 1 },
+          { opacity: 1, offset: 0.45 },
+          { opacity: 0, offset: 1.0 },
         ],
         {
           duration: TILE_LIFETIME_MS,
@@ -168,15 +171,8 @@ export function CursorTrail() {
 
       animation.onfinish = () => {
         tile.remove();
-        occupiedCellsRef.current.delete(key);
-        if (occupiedCellsRef.current.size === 0) {
-          lastGridRef.current = null;
-          currentAxisRef.current = null;
-          runLengthRef.current = 0;
-        }
+        activeTilesRef.current = activeTilesRef.current.filter((t) => t.id !== tileId);
       };
-
-      return true;
     };
 
     const handleMove = (e: MouseEvent | PointerEvent) => {
@@ -185,130 +181,42 @@ export function CursorTrail() {
       const currentX = e.clientX;
       const currentY = e.clientY;
 
-      // Deduplicate identical coordinate events
-      if (
-        currentX === lastProcessedPosRef.current.x &&
-        currentY === lastProcessedPosRef.current.y
-      ) {
-        return;
-      }
-      lastProcessedPosRef.current = { x: currentX, y: currentY };
-
-      // Reset idle timer (clears trail origin when cursor stops for 400ms)
+      // Reset idle timer (clears trail origin when cursor stops for 350ms)
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
       }
       idleTimerRef.current = setTimeout(() => {
-        lastGridRef.current = null;
-        currentAxisRef.current = null;
-        runLengthRef.current = 0;
-      }, 400);
+        lastPosRef.current = null;
+      }, 350);
 
-      const targetGx = Math.round(currentX / ATTACHED_STEP);
-      const targetGy = Math.round(currentY / ATTACHED_STEP);
-
-      // Start trail at cursor target if no active origin
-      if (!lastGridRef.current) {
-        lastGridRef.current = { gx: targetGx, gy: targetGy };
-        currentAxisRef.current = null;
-        runLengthRef.current = 0;
-        spawnTileAtGrid(targetGx, targetGy);
+      // Start trail at current position if no active origin
+      if (!lastPosRef.current) {
+        lastPosRef.current = { x: currentX, y: currentY };
+        spawnTile(currentX, currentY);
         return;
       }
 
-      let dgx = targetGx - lastGridRef.current.gx;
-      let dgy = targetGy - lastGridRef.current.gy;
+      let dx = currentX - lastPosRef.current.x;
+      let dy = currentY - lastPosRef.current.y;
+      let dist = Math.hypot(dx, dy);
 
-      // Advance along grid to follow cursor direction with stepped cluster geometry
-      while (Math.abs(dgx) > 0 || Math.abs(dgy) > 0) {
-        const absX = Math.abs(dgx);
-        const absY = Math.abs(dgy);
+      // Step along the exact cursor path at STEP_DISTANCE intervals
+      while (dist >= STEP_DISTANCE) {
+        const stepRatio: number = STEP_DISTANCE / dist;
+        const nextX: number = lastPosRef.current.x + dx * stepRatio;
+        const nextY: number = lastPosRef.current.y + dy * stepRatio;
 
-        // Decide preferred axis:
-        // Capped linear runs prevent collapsing into single 1D column or ribbon.
-        let preferredAxis: "x" | "y";
-        if (absX > 0 && absY > 0) {
-          // Diagonal motion: alternate after 2 blocks on the same axis ([■][■] then [■][■])
-          if (runLengthRef.current >= 2) {
-            preferredAxis = currentAxisRef.current === "x" ? "y" : "x";
-          } else if (absX >= absY) {
-            preferredAxis = "x";
-          } else {
-            preferredAxis = "y";
-          }
-        } else if (absX > 0) {
-          // Horizontal motion: after 3 blocks, take a perpendicular cluster step
-          if (runLengthRef.current >= 3) {
-            preferredAxis = "y";
-          } else {
-            preferredAxis = "x";
-          }
-        } else {
-          // Vertical motion: after 2 blocks, take a perpendicular cluster step
-          if (runLengthRef.current >= 2) {
-            preferredAxis = "x";
-          } else {
-            preferredAxis = "y";
-          }
-        }
+        spawnTile(nextX, nextY);
+        lastPosRef.current = { x: nextX, y: nextY };
 
-        // Try preferred axis first, fallback to alternate orthogonal axis if cell is occupied
-        const axesToTry: Array<"x" | "y"> = [
-          preferredAxis,
-          preferredAxis === "x" ? "y" : "x",
-        ];
-        const currentGrid = lastGridRef.current;
-        if (!currentGrid) break;
-
-        let stepped = false;
-
-        for (const stepAxis of axesToTry) {
-          let stepDir: number;
-          if (stepAxis === "x") {
-            stepDir = absX > 0 ? (dgx > 0 ? 1 : -1) : staggerSideRef.current;
-          } else {
-            stepDir = absY > 0 ? (dgy > 0 ? 1 : -1) : staggerSideRef.current;
-          }
-
-          const candidateGx: number = currentGrid.gx + (stepAxis === "x" ? stepDir : 0);
-          const candidateGy: number = currentGrid.gy + (stepAxis === "y" ? stepDir : 0);
-          const key = `${candidateGx},${candidateGy}`;
-
-          if (!occupiedCellsRef.current.has(key)) {
-            // If taking a perpendicular stagger step, toggle side for next time
-            if (absX === 0 && stepAxis === "x") {
-              staggerSideRef.current = -staggerSideRef.current;
-            } else if (absY === 0 && stepAxis === "y") {
-              staggerSideRef.current = -staggerSideRef.current;
-            }
-
-            if (stepAxis === currentAxisRef.current) {
-              runLengthRef.current += 1;
-            } else {
-              currentAxisRef.current = stepAxis;
-              runLengthRef.current = 1;
-            }
-
-            spawnTileAtGrid(candidateGx, candidateGy);
-            lastGridRef.current = { gx: candidateGx, gy: candidateGy };
-            stepped = true;
-            break;
-          }
-        }
-
-        if (!stepped) {
-          break; // No adjacent free cell available
-        }
-
-        dgx = targetGx - lastGridRef.current.gx;
-        dgy = targetGy - lastGridRef.current.gy;
+        dx = currentX - lastPosRef.current.x;
+        dy = currentY - lastPosRef.current.y;
+        dist = Math.hypot(dx, dy);
       }
     };
 
     const handlePointerLeave = () => {
-      lastGridRef.current = null;
-      currentAxisRef.current = null;
-      runLengthRef.current = 0;
+      lastPosRef.current = null;
     };
 
     window.addEventListener("pointermove", handleMove, { passive: true });
@@ -322,8 +230,8 @@ export function CursorTrail() {
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
       }
-      occupiedCellsRef.current.forEach((t) => t.el.remove());
-      occupiedCellsRef.current.clear();
+      activeTilesRef.current.forEach((t) => t.el.remove());
+      activeTilesRef.current = [];
       if (container) {
         container.innerHTML = "";
       }
