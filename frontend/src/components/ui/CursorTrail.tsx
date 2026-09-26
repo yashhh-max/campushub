@@ -40,12 +40,8 @@ const SYMBOLS = [
 // 20px x 20px square syntax block
 const CUBE_SIZE = 20;
 
-// Minimum separation between square centers to prevent visible interior overlap
-// Two 20px squares overlap if and only if |dx| < MIN_SEPARATION and |dy| < MIN_SEPARATION
-const MIN_SEPARATION = 19.5;
-
 // Compact trail length of 8–12 visible cubes
-const MAX_VISIBLE_CUBES = 11;
+const MAX_VISIBLE_CUBES = 10;
 
 // Fade duration in milliseconds
 const FADE_LIFETIME_MS = 600;
@@ -58,17 +54,24 @@ interface ActiveCubeRecord {
 
 /**
  * CursorTrail
- * Real-trajectory code-block cursor trail.
+ * Local Edge-Attachment Chain Model:
  * - Every block: 20px × 20px square, exactly ONE syntax symbol, flat color, 1px dark border, 1px radius, 0° rotation.
- * - Follows the TRUE cursor trajectory (e.g. 30°, 45°, horizontal, vertical, curves, turns) without grid or axis-aligned snapping.
- * - Dense vector interpolation along the path between pointer events.
- * - Non-overlapping constraint: skips candidate positions that would visibly overlap existing cubes.
- * - Anchored in place, fades smoothly without upward drift or particle scattering.
- * - Background layer (z-index: 5, pointer-events: none, renders behind foreground buttons, photos, cards, and text).
+ * - Local edge attachment: each new cube attaches to one of the 4 edge neighbors of the previous cube:
+ *     RIGHT: (prevX + 20, prevY)
+ *     LEFT:  (prevX - 20, prevY)
+ *     DOWN:  (prevX, prevY + 20)
+ *     UP:    (prevX, prevY - 20)
+ * - Each new cube shares a FULL EDGE with the previous cube (no corner-only contact, no overlap, no gap).
+ * - Cursor direction selects the neighbor:
+ *     abs(dx) >= abs(dy) -> horizontal step (LEFT/RIGHT by sign of dx)
+ *     abs(dy) > abs(dx)  -> vertical step (UP/DOWN by sign of dy)
+ * - Zero global grid, zero grid snapping, zero run caps, zero forced cluster/puzzle generation.
+ * - Zero random offsets, zero upward drift, zero particle scattering.
+ * - Background layer (z-index: 5, pointer-events: none, renders behind buttons, photos, cards, and text).
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+  const lastCubeRef = useRef<{ x: number; y: number } | null>(null);
   const activeCubesRef = useRef<ActiveCubeRecord[]>([]);
   const colorIndexRef = useRef(0);
   const lastSymbolRef = useRef("");
@@ -87,14 +90,11 @@ export function CursorTrail() {
     const container = containerRef.current;
     if (!container) return;
 
-    // Bounding-box overlap check: two 20px squares overlap iff both |dx| < MIN_SEPARATION and |dy| < MIN_SEPARATION
-    const doesOverlapActive = (x: number, y: number): boolean => {
+    // Check if an active cube already occupies the exact coordinate (prevents duplicate stacking when reversing)
+    const isOccupied = (x: number, y: number): boolean => {
       for (let i = 0; i < activeCubesRef.current.length; i++) {
         const c = activeCubesRef.current[i];
-        if (
-          Math.abs(x - c.x) < MIN_SEPARATION &&
-          Math.abs(y - c.y) < MIN_SEPARATION
-        ) {
+        if (Math.abs(x - c.x) < 8 && Math.abs(y - c.y) < 8) {
           return true;
         }
       }
@@ -102,8 +102,7 @@ export function CursorTrail() {
     };
 
     const spawnCube = (x: number, y: number): boolean => {
-      // If candidate position would overlap an active cube, do not spawn
-      if (doesOverlapActive(x, y)) {
+      if (isOccupied(x, y)) {
         return false;
       }
 
@@ -192,51 +191,53 @@ export function CursorTrail() {
       const currentY = e.clientY;
 
       // If trail had completely vanished or first movement, initialize origin cleanly
-      if (!lastPosRef.current || activeCubesRef.current.length === 0) {
-        lastPosRef.current = { x: currentX, y: currentY };
+      if (!lastCubeRef.current || activeCubesRef.current.length === 0) {
+        lastCubeRef.current = { x: currentX, y: currentY };
         spawnCube(currentX, currentY);
         return;
       }
 
-      const prevX = lastPosRef.current.x;
-      const prevY = lastPosRef.current.y;
-      const dx = currentX - prevX;
-      const dy = currentY - prevY;
+      let dx = currentX - lastCubeRef.current.x;
+      let dy = currentY - lastCubeRef.current.y;
       const dist = Math.hypot(dx, dy);
 
       // Discard massive window jumps (e.g. alt-tab or multi-monitor teleport > 250px)
       if (dist > 250) {
-        lastPosRef.current = { x: currentX, y: currentY };
+        lastCubeRef.current = { x: currentX, y: currentY };
         spawnCube(currentX, currentY);
         return;
       }
 
-      if (dist < 1) {
-        return;
+      // Local edge attachment:
+      // When cursor moves away from last placed cube, step to one of the 4 edge neighbors
+      // (RIGHT: +20, LEFT: -20, DOWN: +20, UP: -20) according to dominant vector direction
+      let iterations = 0;
+      while (
+        (Math.abs(dx) >= CUBE_SIZE || Math.abs(dy) >= CUBE_SIZE) &&
+        iterations < 20
+      ) {
+        iterations++;
+        let nextX: number = lastCubeRef.current.x;
+        let nextY: number = lastCubeRef.current.y;
+
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          // Primarily horizontal cursor movement
+          nextX += (dx > 0 ? 1 : -1) * CUBE_SIZE;
+        } else {
+          // Primarily vertical cursor movement
+          nextY += (dy > 0 ? 1 : -1) * CUBE_SIZE;
+        }
+
+        spawnCube(nextX, nextY);
+        lastCubeRef.current = { x: nextX, y: nextY };
+
+        dx = currentX - nextX;
+        dy = currentY - nextY;
       }
-
-      // Dense vector interpolation along the actual cursor trajectory P_prev -> P_curr
-      // Marches in 2px step increments along the real path vector
-      const stepIncrement = 2;
-      const steps = Math.floor(dist / stepIncrement);
-
-      for (let i = 1; i <= steps; i++) {
-        const t = (i * stepIncrement) / dist;
-        const candidateX = prevX + dx * t;
-        const candidateY = prevY + dy * t;
-
-        // Attempts to spawn at actual trajectory point; if it does not overlap, spawns and records
-        spawnCube(candidateX, candidateY);
-      }
-
-      // Always test the exact endpoint of the pointer event
-      spawnCube(currentX, currentY);
-
-      lastPosRef.current = { x: currentX, y: currentY };
     };
 
     const handlePointerLeave = () => {
-      lastPosRef.current = null;
+      lastCubeRef.current = null;
     };
 
     // Attach single pointermove listener on window
