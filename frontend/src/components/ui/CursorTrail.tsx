@@ -40,31 +40,42 @@ const SYMBOLS = [
 // 20px x 20px square syntax block
 const CUBE_SIZE = 20;
 
-// Controlled 18px trail spacing between consecutive cubes (2px overlap ensuring zero visual gaps)
-const STEP_DISTANCE = 18;
+// Exact 20px center-to-center spacing ensures neighboring cubes touch edge-to-edge without covering each other
+const STEP_DISTANCE = 20;
 
 // Compact trail length of 8–12 visible cubes
-const MAX_VISIBLE_CUBES = 11;
+const MAX_VISIBLE_CUBES = 10;
 
 // Fade duration in milliseconds
 const FADE_LIFETIME_MS = 600;
 
+interface ActiveCubeRecord {
+  x: number;
+  y: number;
+  el: HTMLDivElement;
+}
+
 /**
  * CursorTrail
- * Dense, continuous code-block cursor trail.
+ * Clean, non-overlapping code-block cursor trail.
  * - Every block: 20px × 20px square, exactly ONE syntax symbol, flat color, 1px dark border, 1px radius, 0° rotation.
- * - Dense path sampling at 18px intervals along actual cursor movement:
- *   [=][{][<][+][;][>][(][}]
- * - Absolutely zero gaps between adjacent cubes: blocks touch and share 1-2px border overlap.
- * - Continuous path interpolation: large pointer jumps (e.g. 50-100px) are interpolated along P0 -> P1 without skipping.
- * - No artificial random offset, no scatter, no grid lattice, no breathing gaps or modulo spacing.
- * - Anchored in place, smooth fade-out without upward drift or movement.
- * - Background layer (z-index: 5, pointer-events: none, sits behind foreground buttons, photos, cards, and text).
+ * - Axis-aligned 20px step decomposition along the cursor trajectory:
+ *   [>][−][=][{][+][<][;][*]
+ * - Blocks touch cleanly edge-to-edge without covering each other (zero diagonal corner stacking or card-tower cascade).
+ * - When moving horizontally: clean horizontal ribbon [=][{][<][+][;][>].
+ * - When moving vertically: clean vertical ribbon.
+ * - When turning 90°: natural corner transition.
+ * - When moving diagonally: natural staircase of edge-connected squares:
+ *   [>][=]
+ *        [{][+]
+ *             [;]
+ * - No grid generator, no cluster engine, no random offsets, no diagonal corner overlap.
+ * - Background layer (z-index: 5, pointer-events: none, renders behind buttons, photos, cards, and text).
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
-  const activeCubesRef = useRef<HTMLDivElement[]>([]);
+  const activeCubesRef = useRef<ActiveCubeRecord[]>([]);
   const colorIndexRef = useRef(0);
   const lastSymbolRef = useRef("");
 
@@ -82,12 +93,27 @@ export function CursorTrail() {
     const container = containerRef.current;
     if (!container) return;
 
+    const hasOverlapWithActive = (x: number, y: number): boolean => {
+      for (let i = 0; i < activeCubesRef.current.length; i++) {
+        const c = activeCubesRef.current[i];
+        if (Math.abs(x - c.x) < 14 && Math.abs(y - c.y) < 14) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     const spawnCube = (x: number, y: number) => {
+      // Prevent duplicate cubes on the exact same coordinate if cursor reverses direction
+      if (hasOverlapWithActive(x, y)) {
+        return;
+      }
+
       // Evict oldest cube when reaching max compact trail length to maintain short continuous snake
       if (activeCubesRef.current.length >= MAX_VISIBLE_CUBES) {
         const oldest = activeCubesRef.current.shift();
         if (oldest) {
-          oldest.remove();
+          oldest.el.remove();
         }
       }
 
@@ -134,7 +160,7 @@ export function CursorTrail() {
       cube.style.willChange = "opacity";
 
       container.appendChild(cube);
-      activeCubesRef.current.push(cube);
+      activeCubesRef.current.push({ x, y, el: cube });
 
       // Stays fixed in place, fades smoothly without upward drift or rotation
       const anim = cube.animate(
@@ -152,7 +178,7 @@ export function CursorTrail() {
 
       anim.onfinish = () => {
         cube.remove();
-        const idx = activeCubesRef.current.indexOf(cube);
+        const idx = activeCubesRef.current.findIndex((c) => c.el === cube);
         if (idx !== -1) {
           activeCubesRef.current.splice(idx, 1);
         }
@@ -174,7 +200,7 @@ export function CursorTrail() {
 
       let dx = currentX - lastPosRef.current.x;
       let dy = currentY - lastPosRef.current.y;
-      let dist = Math.hypot(dx, dy);
+      const dist = Math.hypot(dx, dy);
 
       // Discard massive window jumps (e.g. alt-tab or multi-monitor teleport > 250px)
       if (dist > 250) {
@@ -183,19 +209,32 @@ export function CursorTrail() {
         return;
       }
 
-      // Dense path interpolation along P0 -> P1 at exact STEP_DISTANCE intervals (18px)
-      // Eliminates gaps during fast cursor movements
-      while (dist >= STEP_DISTANCE) {
-        const ratio: number = STEP_DISTANCE / dist;
-        const nextX: number = lastPosRef.current.x + dx * ratio;
-        const nextY: number = lastPosRef.current.y + dy * ratio;
+      // Axis-aligned edge-connected step decomposition:
+      // Steps along dominant displacement axis so cubes touch along entire 20px edges
+      // This completely eliminates diagonal corner overlap and card-stacking cascades
+      let iterations = 0;
+      while (
+        (Math.abs(dx) >= STEP_DISTANCE || Math.abs(dy) >= STEP_DISTANCE) &&
+        iterations < 15
+      ) {
+        iterations++;
+        let stepX = 0;
+        let stepY = 0;
+
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          stepX = Math.sign(dx) * STEP_DISTANCE;
+        } else {
+          stepY = Math.sign(dy) * STEP_DISTANCE;
+        }
+
+        const nextX: number = lastPosRef.current.x + stepX;
+        const nextY: number = lastPosRef.current.y + stepY;
 
         spawnCube(nextX, nextY);
         lastPosRef.current = { x: nextX, y: nextY };
 
         dx = currentX - nextX;
         dy = currentY - nextY;
-        dist = Math.hypot(dx, dy);
       }
     };
 
@@ -210,7 +249,7 @@ export function CursorTrail() {
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       document.documentElement.removeEventListener("pointerleave", handlePointerLeave);
-      activeCubesRef.current.forEach((c) => c.remove());
+      activeCubesRef.current.forEach((c) => c.el.remove());
       activeCubesRef.current = [];
       if (container) {
         container.innerHTML = "";
