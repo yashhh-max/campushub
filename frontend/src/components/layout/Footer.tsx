@@ -1,188 +1,212 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   GraduationCap,
-  RotateCw,
+  MapPin,
+  Phone,
+  Mail,
+  ExternalLink,
   ShieldCheck,
+  CheckCircle,
 } from "lucide-react";
 import { fetchSystemHealth } from "@/lib/api";
 import { SystemHealth } from "@/types/campus";
 
 export function Footer() {
   const [health, setHealth] = useState<SystemHealth>({ status: "checking" });
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const performCheck = async () => {
-    setIsRefreshing(true);
-    try {
-      const result = await fetchSystemHealth();
-      setHealth(result);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      performCheck();
-    }, 0);
-
-    const interval = setInterval(() => {
-      performCheck();
-    }, 30000);
-
-    return () => {
-      clearTimeout(timer);
-      clearInterval(interval);
-    };
+    fetchSystemHealth()
+      .then((res) => setHealth(res))
+      .catch(() => setHealth({ status: "offline" }));
   }, []);
-
-  const getStatusDisplay = () => {
-    if (health.status === "checking") {
-      return {
-        color: "bg-amber-400 animate-pulse",
-        text: "Checking backend...",
-      };
-    }
-    if (health.status === "healthy") {
-      return {
-        color: "bg-emerald-500",
-        text: `Backend: Operational (DB: ${health.database})`,
-      };
-    }
-    if (health.status === "degraded") {
-      return {
-        color: "bg-amber-500",
-        text: `Backend Degraded (${health.database})`,
-      };
-    }
-    return {
-      color: "bg-rose-500",
-      text: "Backend Offline (Port 8000)",
-    };
-  };
-
-  const statusInfo = getStatusDisplay();
 
   return (
     <footer className="w-full border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
-          {/* Column 1: Brand & Health Status */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 lg:gap-10">
+          {/* Column 1 & 2: Institution & Address */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-sm">
-                <GraduationCap className="w-4 h-4" />
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-900 to-blue-800 flex items-center justify-center text-white shadow-sm">
+                <GraduationCap className="w-5 h-5 text-amber-300" />
               </div>
-              <span className="font-bold text-lg text-slate-900 dark:text-white">
-                CampusHub
-              </span>
+              <div className="flex flex-col">
+                <span className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white leading-tight">
+                  KPRIT <span className="text-indigo-900 dark:text-indigo-400 font-bold">CampusHub</span>
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  Kommuri Pratap Reddy Institute of Technology
+                </span>
+              </div>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-sm leading-relaxed">
-              The unified collegiate experience platform for discovering campus events, exploring verified student organizations, and staying current with official academic notices.
+
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-sm">
+              An Autonomous Institution affiliated to JNTUH, approved by AICTE, and accredited with NAAC &apos;A&apos; Grade and NBA. Empowering engineering education, student innovation, and corporate careers.
             </p>
 
-            {/* Live Backend System Health Pill */}
-            <div className="pt-2">
-              <div className="inline-flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-                <div className="relative flex items-center justify-center">
-                  <span className={`w-2.5 h-2.5 rounded-full ${statusInfo.color}`} />
-                  {health.status === "healthy" && (
-                    <span className="absolute w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping opacity-75" />
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                    {statusInfo.text}
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                    API v{health.version || "1.0.0"} • Next.js + Django DRF
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={performCheck}
-                  disabled={isRefreshing}
-                  className="ml-1 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
-                  title="Refresh backend status"
-                  aria-label="Refresh backend status"
-                >
-                  <RotateCw
-                    className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-indigo-500" : ""}`}
-                  />
-                </button>
+            <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400 pt-1">
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-indigo-700 dark:text-indigo-400 shrink-0 mt-0.5" />
+                <span>
+                  Survey No. 1140, Near Infosys, Adjacent to NTPC Power Grid, Ghanpur (V), Ghatkesar (M), Medchal-Malkajgiri Dist, Hyderabad, Telangana – 501301.
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-indigo-700 dark:text-indigo-400 shrink-0" />
+                <span>cr.dean@kpritech.ac.in &bull; info@kpritech.ac.in</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-indigo-700 dark:text-indigo-400 shrink-0" />
+                <span>+91 84980 52084 / +91 95420 42666</span>
               </div>
             </div>
           </div>
 
-          {/* Column 2: Platform Links */}
+          {/* Column 3: Campus Exploration */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
-              Explore Campus
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Student Campus
             </h4>
-            <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+            <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
               <li>
-                <a href="#events" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                  Upcoming Events
+                <a href="#events" className="hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors">
+                  Upcoming Campus Events
                 </a>
               </li>
               <li>
-                <a href="#clubs" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                  Student Organizations
+                <a href="#clubs" className="hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors">
+                  Student Chapters &amp; Clubs
                 </a>
               </li>
               <li>
-                <a href="#announcements" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                  Official Announcements
+                <a href="#announcements" className="hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors">
+                  Official Circulars &amp; Notices
                 </a>
               </li>
               <li>
-                <a href="#community" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                  Student Voices
+                <a href="#opportunities" className="hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors">
+                  TPO Placement Drives
+                </a>
+              </li>
+              <li>
+                <a href="#campus" className="hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors">
+                  Campus Life &amp; Facilities
                 </a>
               </li>
             </ul>
           </div>
 
-          {/* Column 3: Tech Stack & Architecture */}
+          {/* Column 4: Academic & Institutional */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
-              Architecture & Docs
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Academics &amp; Governance
             </h4>
-            <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-              <li className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Next.js 15 (App Router)</span>
+            <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+              <li>
+                <a
+                  href="https://kpritech.ac.in/academic-regulations/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors flex items-center gap-1"
+                >
+                  <span>Academic Regulations</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                </a>
               </li>
-              <li className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Django REST Framework</span>
+              <li>
+                <a
+                  href="https://kpritech.ac.in/academic-calendar/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors flex items-center gap-1"
+                >
+                  <span>Academic Calendar</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                </a>
               </li>
-              <li className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
-                <span>PostgreSQL 16 Database</span>
+              <li>
+                <a
+                  href="https://kpritech.ac.in/placements/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors flex items-center gap-1"
+                >
+                  <span>Training &amp; Placement Cell</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                </a>
               </li>
-              <li className="pt-1">
-                <span className="text-xs text-slate-500">Phase 1: Foundation & Landing</span>
+              <li>
+                <a
+                  href="https://kpritech.ac.in/iic-kprit/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors flex items-center gap-1"
+                >
+                  <span>Institution&apos;s Innovation Council</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://kpritech.ac.in/iqac/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors flex items-center gap-1"
+                >
+                  <span>Internal Quality Assurance (IQAC)</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                </a>
               </li>
             </ul>
+          </div>
+
+          {/* Column 5: Accreditation & Portal Status */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Institution Verification
+            </h4>
+            <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-1.5 font-medium text-slate-800 dark:text-slate-200">
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-700 dark:text-indigo-400 shrink-0" />
+                <span>Autonomous • JNTUH</span>
+              </div>
+              <div className="flex items-center gap-1.5 font-medium text-slate-800 dark:text-slate-200">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>NAAC &apos;A&apos; Grade Accredited</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] space-y-1">
+                <div className="flex justify-between font-mono">
+                  <span className="text-slate-500">TG EAPCET Code:</span>
+                  <span className="font-bold text-indigo-900 dark:text-indigo-400">KPRT</span>
+                </div>
+                <div className="flex justify-between font-mono">
+                  <span className="text-slate-500">ECET Code:</span>
+                  <span className="font-bold text-indigo-900 dark:text-indigo-400">KPRT</span>
+                </div>
+              </div>
+              <a
+                href="https://kpritech.ac.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-700 dark:text-indigo-400 hover:underline"
+              >
+                <span>Visit kpritech.ac.in</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-          <p>© {new Date().getFullYear()} CampusHub. Engineered for college communities. Portfolio Ready.</p>
-          <div className="flex items-center gap-4">
-            <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-              REST API CORS Configured
-            </span>
-            <span>•</span>
-            <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              JWT Auth Ready
-            </span>
+          <p>© {new Date().getFullYear()} Kommuri Pratap Reddy Institute of Technology (KPRIT). All Rights Reserved.</p>
+          <div className="flex items-center gap-3">
+            <span>Student Campus Platform</span>
+            <span>&bull;</span>
+            <span>Designed for College Deployment</span>
           </div>
         </div>
       </div>

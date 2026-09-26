@@ -96,7 +96,7 @@ export default function StudentDashboardPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-white/10 text-indigo-200 border border-white/15">
-                  State University Student Portal
+                  KPRIT Student Command Center
                 </span>
                 {unreadCount > 0 && (
                   <Link

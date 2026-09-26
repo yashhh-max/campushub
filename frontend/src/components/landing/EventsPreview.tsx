@@ -54,15 +54,15 @@ export function EventsPreview() {
         {/* Section Header */}
         <RevealOnScroll direction="down" duration={500} className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-              DEMO DATA PREVIEW
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 mb-2">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Campus Activity Schedule</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Upcoming Campus Events
             </h2>
             <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400">
-              Interactive preview of upcoming lectures, hackathons, job fairs, and social gatherings.
+              Verified campus events, technical symposiums, hackathons, and collegiate workshops.
             </p>
           </div>
 
@@ -74,7 +74,7 @@ export function EventsPreview() {
                 onClick={() => setSelectedCategory(cat)}
                 className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
                   selectedCategory === cat
-                    ? "bg-indigo-600 text-white shadow-sm"
+                    ? "bg-indigo-900 dark:bg-indigo-600 text-white shadow-sm"
                     : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                 }`}
               >
@@ -92,7 +92,7 @@ export function EventsPreview() {
               No events found in this category
             </h3>
             <p className="text-sm text-slate-500 mt-1">
-              Select &quot;All&quot; to preview all collegiate demo events.
+              Select &quot;All&quot; to view all campus activities.
             </p>
           </div>
         ) : (
@@ -123,14 +123,14 @@ export function EventsPreview() {
                   >
                   {/* Card Visual Header */}
                   <div
-                    className={`h-28 bg-gradient-to-tr ${event.imageGradient || event.image_gradient || "from-indigo-600 to-blue-700"} p-4 flex flex-col justify-between text-white relative overflow-hidden`}
+                    className={`h-28 bg-gradient-to-tr ${event.imageGradient || event.image_gradient || "from-indigo-900 to-blue-800"} p-4 flex flex-col justify-between text-white relative overflow-hidden`}
                   >
                     <div className="flex items-center justify-between z-10">
                       <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md">
                         {event.category}
                       </span>
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-black/30 backdrop-blur-md">
-                        Demo
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-black/40 backdrop-blur-md">
+                        {event.available_seats > 0 ? `${event.available_seats} seats left` : "Registration Open"}
                       </span>
                     </div>
                     <div className="z-10 flex items-center gap-1.5 text-xs font-medium">
@@ -201,10 +201,10 @@ export function EventsPreview() {
                           {isRsvpd ? (
                             <>
                               <CheckCircle className="w-3.5 h-3.5 text-emerald-500 mr-1" />
-                              RSVPed
+                              Registered
                             </>
                           ) : (
-                            "RSVP (Demo)"
+                            "Register"
                           )}
                         </Button>
                       </div>
@@ -219,8 +219,8 @@ export function EventsPreview() {
 
         <div className="mt-12 text-center">
           <Link href="/events">
-            <Button size="lg" className="font-semibold group shadow-md shadow-indigo-500/20">
-              <span>View Full Campus Events Catalog & RSVP</span>
+            <Button size="lg" className="font-semibold group shadow-md shadow-indigo-900/10">
+              <span>View Full Campus Events Catalog</span>
               <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
@@ -241,10 +241,10 @@ export function EventsPreview() {
                 Organized by{" "}
                 {typeof activeModalEvent.organizer === "object" && activeModalEvent.organizer
                   ? activeModalEvent.organizer.full_name
-                  : String(activeModalEvent.organizer || "Campus Club")}
+                  : String(activeModalEvent.organizer || "Campus Organization")}
               </Badge>
-              <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded font-mono">
-                [DEMO PREVIEW]
+              <span className="text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full font-semibold border border-indigo-200 dark:border-indigo-800">
+                Verified Campus Event
               </span>
             </div>
 
@@ -290,7 +290,7 @@ export function EventsPreview() {
               <span className="text-xs text-slate-500">
                 {(activeModalEvent.rsvpCount ?? activeModalEvent.rsvp_count ?? 0) +
                   (rsvpdEvents[activeModalEvent.id] ? 1 : 0)}{" "}
-                students attending
+                students registered
               </span>
               <div className="flex items-center gap-2">
                 <Button
@@ -305,7 +305,7 @@ export function EventsPreview() {
                   size="sm"
                   onClick={() => toggleRsvp(activeModalEvent.id)}
                 >
-                  {rsvpdEvents[activeModalEvent.id] ? "Cancel RSVP" : "Confirm RSVP (Demo)"}
+                  {rsvpdEvents[activeModalEvent.id] ? "Cancel Registration" : "Confirm Registration"}
                 </Button>
               </div>
             </div>

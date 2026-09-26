@@ -118,12 +118,12 @@ export default function MyClubsDashboardPage() {
             Student Club Portal
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 max-w-md mx-auto">
-            Sign in with your university credentials to view your club memberships, officer roles, and community discussions.
+            Sign in with your KPRIT institutional credentials to view your club memberships, officer roles, and community discussions.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/login?redirect=/dashboard/clubs" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full font-semibold">
-                Sign In to CampusHub
+              <Button size="lg" className="w-full font-semibold bg-indigo-900 hover:bg-indigo-950 text-white">
+                Sign In to KPRIT CampusHub
               </Button>
             </Link>
             <Link href="/clubs" className="w-full sm:w-auto">
@@ -167,10 +167,10 @@ export default function MyClubsDashboardPage() {
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
-                Community Hub
+                KPRIT Student Organizations
               </span>
               <span className="text-xs text-slate-500">
-                {user?.profile?.department || "CampusHub University"}
+                {user?.profile?.department || "KPRIT Hyderabad"}
               </span>
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">

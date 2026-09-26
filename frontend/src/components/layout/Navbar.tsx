@@ -33,13 +33,14 @@ import {
 } from "@/lib/api";
 import { NotificationItem } from "@/types/campus";
 import { CampusWebSocketClient } from "@/lib/websocket";
+import { Briefcase, MapPin } from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "Events", href: "/events", icon: Calendar },
   { label: "Clubs", href: "/clubs", icon: Users },
-  { label: "Tickets", href: "/dashboard/tickets", icon: Ticket },
-  { label: "Dashboard", href: "/dashboard", icon: Sparkles },
   { label: "Announcements", href: "/#announcements", icon: Bell },
+  { label: "Opportunities", href: "/#opportunities", icon: Briefcase },
+  { label: "Campus", href: "/#campus", icon: MapPin },
 ];
 
 export function Navbar() {
@@ -215,18 +216,15 @@ export function Navbar() {
           href="/"
           className="flex items-center gap-2.5 group focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg p-1"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-200">
-            <GraduationCap className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-900 via-indigo-800 to-blue-800 flex items-center justify-center text-white shadow-md shadow-indigo-900/20 group-hover:scale-105 transition-transform duration-200">
+            <GraduationCap className="w-5 h-5 text-amber-300" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
-              CampusHub
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                Phase 6
-              </span>
+            <span className="font-extrabold text-lg leading-tight tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+              KPRIT <span className="text-indigo-900 dark:text-indigo-400 font-bold">CampusHub</span>
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              State University Portal
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[210px] sm:max-w-none">
+              Kommuri Pratap Reddy Institute of Technology
             </span>
           </div>
         </Link>
@@ -439,8 +437,8 @@ export function Navbar() {
           ) : (
             <div className="flex items-center gap-2">
               <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  Sign In
+                <Button variant="ghost" size="sm" className="font-semibold text-xs">
+                  Student Login
                 </Button>
               </Link>
               <Link href="/register">
@@ -611,7 +609,7 @@ export function Navbar() {
                   className="block w-full"
                 >
                   <Button variant="outline" size="md" className="w-full justify-center">
-                    Sign In
+                    Student Login
                   </Button>
                 </Link>
                 <Link

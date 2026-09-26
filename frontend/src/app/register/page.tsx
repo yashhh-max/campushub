@@ -16,10 +16,21 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
-  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
+
+const KPRIT_DEPARTMENTS = [
+  "Computer Science & Engineering (CSE)",
+  "CSE (Artificial Intelligence & Machine Learning)",
+  "CSE (Data Science)",
+  "Electronics & Communication Engineering (ECE)",
+  "Electrical & Electronics Engineering (EEE)",
+  "Civil Engineering (CE)",
+  "Mechanical Engineering (ME)",
+  "Humanities & Sciences (H&S)",
+];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -28,7 +39,7 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [studentId, setStudentId] = useState("");
-  const [department, setDepartment] = useState("Computer Science");
+  const [department, setDepartment] = useState(KPRIT_DEPARTMENTS[0]);
   const [graduationYear, setGraduationYear] = useState<number>(2027);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -73,44 +84,32 @@ export default function RegisterPage() {
         router.push("/");
       }, 1000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Registration failed.";
+      const msg = err instanceof Error ? err.message : "Registration failed. Please check your details.";
       setError(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFillDemo = () => {
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    setFullName("Jordan Taylor");
-    setEmail(`jordan.${randomSuffix}@state.edu`);
-    setStudentId(`STU-${randomSuffix}`);
-    setDepartment("Software Engineering");
-    setGraduationYear(2028);
-    setPassword("SecurePass123!");
-    setConfirmPassword("SecurePass123!");
-    setError(null);
-  };
-
   return (
-    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50/80 dark:bg-slate-950 transition-colors">
+    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-950 transition-colors">
       <div className="sm:mx-auto sm:w-full sm:max-w-lg text-center">
         <Link
           href="/"
           className="inline-flex items-center gap-2.5 group focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg p-1"
         >
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-200">
-            <GraduationCap className="w-6 h-6" />
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-900 via-indigo-800 to-blue-800 flex items-center justify-center text-white shadow-md shadow-indigo-900/20 group-hover:scale-105 transition-transform duration-200">
+            <GraduationCap className="w-6 h-6 text-amber-300" />
           </div>
-          <span className="font-bold text-2xl tracking-tight text-slate-900 dark:text-white">
-            CampusHub
+          <span className="font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">
+            KPRIT <span className="text-indigo-900 dark:text-indigo-400 font-bold">CampusHub</span>
           </span>
         </Link>
-        <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          Create Your Student Account
+        <h2 className="mt-5 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          Create Student Account
         </h2>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          Join your university community, register for events, and join student clubs.
+        <p className="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+          Kommuri Pratap Reddy Institute of Technology &bull; Autonomous
         </p>
       </div>
 
@@ -143,7 +142,7 @@ export default function RegisterPage() {
                 htmlFor="fullName"
                 className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
               >
-                Full Name *
+                Full Student Name <span className="text-rose-500">*</span>
               </label>
               <div className="relative rounded-xl shadow-xs">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -156,19 +155,19 @@ export default function RegisterPage() {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Jordan Taylor"
+                  placeholder="e.g. K. Sai Varun"
                   className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
 
-            {/* Email Field */}
+            {/* Email Address */}
             <div>
               <label
                 htmlFor="email"
                 className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
               >
-                Campus Email Address *
+                Institutional Email Address <span className="text-rose-500">*</span>
               </label>
               <div className="relative rounded-xl shadow-xs">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -181,23 +180,20 @@ export default function RegisterPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="student@state.edu"
+                  placeholder="student@kpritech.ac.in"
                   className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />
               </div>
-              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                Institutional campus domain (e.g. .edu or your college domain)
-              </p>
             </div>
 
-            {/* Student ID & Department Grid */}
+            {/* Student ID / Roll No & Department Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label
                   htmlFor="studentId"
                   className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
                 >
-                  Student ID
+                  Hall Ticket / Roll No.
                 </label>
                 <div className="relative rounded-xl shadow-xs">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -209,72 +205,76 @@ export default function RegisterPage() {
                     type="text"
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
-                    placeholder="STU-8842"
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    placeholder="e.g. 22K81A0501"
+                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-mono"
                   />
                 </div>
               </div>
 
               <div>
                 <label
-                  htmlFor="department"
+                  htmlFor="graduationYear"
                   className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
                 >
-                  Department / Major
+                  Graduation Year
                 </label>
                 <div className="relative rounded-xl shadow-xs">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <BookOpen className="w-4 h-4" />
+                    <Calendar className="w-4 h-4" />
                   </div>
-                  <input
-                    id="department"
-                    name="department"
-                    type="text"
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    placeholder="Computer Science"
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                  />
+                  <select
+                    id="graduationYear"
+                    name="graduationYear"
+                    value={graduationYear}
+                    onChange={(e) => setGraduationYear(Number(e.target.value))}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  >
+                    {[2025, 2026, 2027, 2028, 2029].map((year) => (
+                      <option key={year} value={year}>
+                        Class of {year}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
 
-            {/* Graduation Year */}
+            {/* Department Dropdown */}
             <div>
               <label
-                htmlFor="graduationYear"
+                htmlFor="department"
                 className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
               >
-                Expected Graduation Year
+                Academic Department
               </label>
               <div className="relative rounded-xl shadow-xs">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Calendar className="w-4 h-4" />
+                  <BookOpen className="w-4 h-4" />
                 </div>
                 <select
-                  id="graduationYear"
-                  name="graduationYear"
-                  value={graduationYear}
-                  onChange={(e) => setGraduationYear(Number(e.target.value))}
+                  id="department"
+                  name="department"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 >
-                  <option value={2026}>Class of 2026</option>
-                  <option value={2027}>Class of 2027</option>
-                  <option value={2028}>Class of 2028</option>
-                  <option value={2029}>Class of 2029</option>
-                  <option value={2030}>Class of 2030</option>
+                  {KPRIT_DEPARTMENTS.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
-            {/* Password Fields Grid */}
+            {/* Password Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label
                   htmlFor="password"
                   className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
                 >
-                  Password *
+                  Password <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative rounded-xl shadow-xs">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -287,14 +287,14 @@ export default function RegisterPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min 8 characters"
+                    placeholder="Min 8 chars"
                     className="block w-full pl-10 pr-9 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                    aria-label="Toggle password visibility"
                   >
                     {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
@@ -306,7 +306,7 @@ export default function RegisterPage() {
                   htmlFor="confirmPassword"
                   className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
                 >
-                  Confirm Password *
+                  Confirm <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative rounded-xl shadow-xs">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -319,7 +319,7 @@ export default function RegisterPage() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Re-enter password"
                     className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   />
                 </div>
@@ -327,40 +327,36 @@ export default function RegisterPage() {
             </div>
 
             {/* Submit Button */}
-            <div className="pt-2">
+            <div className="pt-3">
               <Button
                 type="submit"
                 size="lg"
                 isLoading={isLoading}
                 disabled={success}
-                className="w-full justify-center group font-semibold"
+                className="w-full justify-center group font-semibold bg-indigo-900 hover:bg-indigo-950 text-white"
               >
-                <span>Create Student Account</span>
+                <span>Register for KPRIT Student Portal</span>
                 <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
               </Button>
             </div>
           </form>
 
-          {/* Quick Demo Fill */}
-          <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={handleFillDemo}
-              className="w-full py-2 px-3 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/40 dark:bg-indigo-950/20 text-xs font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Generate Random Student Profile</span>
-            </button>
+          {/* Verification Badge */}
+          <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
+            <div className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <ShieldCheck className="w-3.5 h-3.5 text-indigo-700 dark:text-indigo-400" />
+              <span>Affiliated to JNTUH &bull; Approved by AICTE</span>
+            </div>
           </div>
 
           {/* Login Link */}
-          <div className="mt-5 text-center text-sm text-slate-600 dark:text-slate-400">
+          <div className="mt-4 text-center text-sm text-slate-600 dark:text-slate-400">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="font-semibold text-indigo-700 dark:text-indigo-400 hover:underline"
             >
-              Sign in
+              Sign In
             </Link>
           </div>
         </div>
@@ -370,7 +366,7 @@ export default function RegisterPage() {
             href="/"
             className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           >
-            ← Return to CampusHub Home
+            ← Return to KPRIT CampusHub Home
           </Link>
         </div>
       </div>

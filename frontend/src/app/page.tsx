@@ -3,8 +3,10 @@ import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/landing/Hero";
 import { Features } from "@/components/landing/Features";
 import { EventsPreview } from "@/components/landing/EventsPreview";
+import { OpportunitiesSection } from "@/components/landing/OpportunitiesSection";
 import { ClubsPreview } from "@/components/landing/ClubsPreview";
 import { AnnouncementsTicker } from "@/components/landing/AnnouncementsTicker";
+import { CampusLifeSection } from "@/components/landing/CampusLifeSection";
 import { CommunitySection } from "@/components/landing/CommunitySection";
 import { CTASection } from "@/components/landing/CTASection";
 
@@ -18,7 +20,9 @@ export default function Home() {
         <AnnouncementsTicker />
         <Features />
         <EventsPreview />
+        <OpportunitiesSection />
         <ClubsPreview />
+        <CampusLifeSection />
         <CommunitySection />
         <CTASection />
       </main>

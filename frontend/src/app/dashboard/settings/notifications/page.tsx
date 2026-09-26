@@ -96,7 +96,7 @@ export default function NotificationPreferencesPage() {
     {
       key: "announcements" as keyof NotificationPreference,
       title: "Campus Announcements",
-      description: "Urgent alerts, university administration notices, and targeted department bulletins.",
+      description: "Urgent alerts, college administration notices, and targeted department bulletins.",
       icon: Bell,
       color: "text-amber-500 bg-amber-50 dark:bg-amber-950/40",
     },
@@ -131,7 +131,7 @@ export default function NotificationPreferencesPage() {
     {
       key: "email_notifications" as keyof NotificationPreference,
       title: "Email Notifications",
-      description: "Receive mirrored notification digests and urgent alerts directly at your university email address.",
+      description: "Receive mirrored notification digests and urgent alerts directly at your KPRIT institutional email address.",
       icon: Mail,
       color: "text-rose-500 bg-rose-50 dark:bg-rose-950/40",
     },

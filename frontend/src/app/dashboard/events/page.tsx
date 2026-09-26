@@ -134,12 +134,12 @@ export default function MyEventsDashboardPage() {
             Student Dashboard
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 max-w-md mx-auto">
-            Log in with your university account to access your event registrations, ticket passes, and campus activity.
+            Log in with your KPRIT institutional account to access your event registrations, ticket passes, and campus activity.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/login?redirect=/dashboard/events" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full font-semibold">
-                Sign In to CampusHub
+              <Button size="lg" className="w-full font-semibold bg-indigo-900 hover:bg-indigo-950 text-white">
+                Sign In to KPRIT CampusHub
               </Button>
             </Link>
             <Link href="/events" className="w-full sm:w-auto">
@@ -164,10 +164,10 @@ export default function MyEventsDashboardPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
-                Student Portal
+                KPRIT Student Portal
               </span>
               <span className="text-xs text-slate-500">
-                {user?.profile?.department || "CampusHub University"}
+                {user?.profile?.department || "KPRIT Hyderabad"}
               </span>
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">

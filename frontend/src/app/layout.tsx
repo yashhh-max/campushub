@@ -12,36 +12,37 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "CampusHub | Modern College Community & Campus Discovery Platform",
-    template: "%s | CampusHub",
+    default: "KPRIT CampusHub | Kommuri Pratap Reddy Institute of Technology",
+    template: "%s | KPRIT CampusHub",
   },
   description:
-    "Discover campus hackathons and events, explore verified student clubs, and stay informed with real-time academic announcements on CampusHub.",
+    "Official digital campus platform for Kommuri Pratap Reddy Institute of Technology (KPRIT), Hyderabad. Autonomous institution affiliated to JNTUH, approved by AICTE, accredited by NAAC 'A' Grade.",
   keywords: [
-    "CampusHub",
-    "college community",
-    "campus events",
-    "student clubs",
-    "university portal",
-    "student organization",
-    "real-time attendance",
-    "QR tickets",
+    "KPRIT",
+    "Kommuri Pratap Reddy Institute of Technology",
+    "KPRIT CampusHub",
+    "KPRIT Hyderabad",
+    "Ghatkesar Engineering College",
+    "JNTUH Autonomous College",
+    "KPRIT Placements",
+    "TPO KPRIT",
+    "Student Campus Portal",
   ],
-  authors: [{ name: "CampusHub Engineering Team" }],
+  authors: [{ name: "KPRIT Campus Technology Division" }],
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://campushub.edu",
-    title: "CampusHub — Modern College Community & Campus Discovery",
+    url: "https://kpritech.ac.in",
+    title: "KPRIT CampusHub — Digital Campus Platform",
     description:
-      "Your campus. Your community. All in one hub. Events, clubs, real-time discussions, and QR check-in.",
-    siteName: "CampusHub",
+      "Everything KPRIT Students Need, In One Place. Events, student chapters, announcements, and career opportunities.",
+    siteName: "KPRIT CampusHub",
   },
   twitter: {
     card: "summary_large_image",
-    title: "CampusHub — Modern College Community & Campus Discovery",
+    title: "KPRIT CampusHub — Digital Campus Platform",
     description:
-      "Your campus. Your community. All in one hub. Events, clubs, real-time discussions, and QR check-in.",
+      "Everything KPRIT Students Need, In One Place. Events, student chapters, announcements, and career opportunities.",
   },
 };
 

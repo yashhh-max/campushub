@@ -7,30 +7,30 @@ import { RevealOnScroll } from "@/components/ui/RevealOnScroll";
 const COMMUNITY_VOICES = [
   {
     quote:
-      "Before CampusHub, finding when robotics teams held build sessions was scattered across three different group chats. Having one official hub makes recruiting new engineers 10x easier.",
-    author: "David K. Vance",
-    role: "President, Autonomous Robotics Lab",
+      "Having one unified platform for hackathons, technical workshops, and lab sessions makes recruiting student engineers across CSE, AI/ML, and ECE effortless. No more scattered WhatsApp groups.",
+    author: "K. Karthik",
+    role: "President, KPRIT Robotics & AI Society",
     gradYear: "Class of 2026",
-    initials: "DV",
-    accent: "bg-cyan-500",
+    initials: "KK",
+    accent: "bg-cyan-600",
   },
   {
     quote:
-      "The real-time RSVP counts let us forecast room sizes and catering for our tech talks with zero guesswork. It elevated our chapter's events to an entirely new standard.",
-    author: "Maya Lin",
-    role: "Lead Organizer, ACM Chapter",
+      "The integrated event registration and attendance management helped us coordinate our national technical conference with zero friction. It elevates KPRIT's collegiate tech culture.",
+    author: "Sai Varun",
+    role: "Chair, IEEE KPRIT Student Branch",
+    gradYear: "Class of 2026",
+    initials: "SV",
+    accent: "bg-indigo-900",
+  },
+  {
+    quote:
+      "Publishing our community service initiatives, blood donation drives, and Ghatkesar rural projects directly on the portal dramatically boosted volunteer turnout from 1st and 2nd years.",
+    author: "Sneha Rao",
+    role: "Student Coordinator, NSS KPRIT Unit",
     gradYear: "Class of 2027",
-    initials: "ML",
-    accent: "bg-indigo-500",
-  },
-  {
-    quote:
-      "As a first-year student, CampusHub was the first place where I felt plugged into campus life. Within two weeks, I joined the Debating Union and attended my first hackathon.",
-    author: "Tariq Hassan",
-    role: "First-Year Representative",
-    gradYear: "Class of 2029",
-    initials: "TH",
-    accent: "bg-amber-500",
+    initials: "SR",
+    accent: "bg-emerald-600",
   },
 ];
 

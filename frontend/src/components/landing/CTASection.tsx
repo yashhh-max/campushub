@@ -13,15 +13,15 @@ export function CTASection() {
       <RevealOnScroll direction="up" duration={650} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold text-indigo-200 border border-white/10 mb-6 backdrop-blur-md">
           <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-          <span>CampusHub Ecosystem</span>
+          <span>KPRIT Digital Campus Platform</span>
         </div>
 
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight max-w-3xl mx-auto leading-tight">
-          Ready to Elevate Your College Experience?
+          Ready to Connect with KPRIT Campus Life?
         </h2>
 
         <p className="mt-4 text-base sm:text-lg text-indigo-200 max-w-2xl mx-auto leading-relaxed">
-          Join over 14,000 students discovering events, networking with student orgs, and staying on top of campus notices.
+          Join fellow students, faculty mentors, and campus organizations to discover events, track official notices, and explore career drives.
         </p>
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
@@ -29,25 +29,18 @@ export function CTASection() {
             <Button
               size="lg"
               className="w-full sm:w-auto bg-white text-indigo-950 hover:bg-slate-100 shadow-lg hover:shadow-xl font-bold cursor-pointer"
-              /*
-               * Sound trigger removed:
-               * Previously on click:
-               * // const audio = new Audio("/sounds/fart.mp3");
-               * // audio.play();
-               * // alert("Student account creation with university email verification is scheduled for Phase 2 (JWT).");
-               */
             >
-              <span>Get Started with Student Email</span>
+              <span>Get Started with Student Portal</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </Link>
           <a href="#events" className="w-full sm:w-auto">
             <Button
-              variant="outline"
+              variant="ghost"
               size="lg"
-              className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10"
+              className="w-full sm:w-auto border border-white/30 text-white bg-white/10 hover:bg-white/20"
             >
-              Browse Public Events
+              Explore Campus Events
             </Button>
           </a>
         </div>
@@ -55,15 +48,15 @@ export function CTASection() {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs sm:text-sm text-indigo-200/80">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>.edu University Email Verification</span>
+            <span>Autonomous &bull; Affiliated to JNTUH</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>100% Free for Registered Clubs</span>
+            <span>NAAC &apos;A&apos; Grade &amp; NBA Accredited</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>Strict Privacy & Zero Ad-Tracking</span>
+            <span>TPO Campus Corporate Connect</span>
           </div>
         </div>
       </RevealOnScroll>

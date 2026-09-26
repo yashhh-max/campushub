@@ -506,7 +506,7 @@ export default function AdminAnnouncementsPage() {
                       className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="general">General (Standard Bulletin)</option>
-                      <option value="official">Official (University Administration)</option>
+                      <option value="official">Official (College Administration)</option>
                       <option value="urgent">Urgent (High Priority / Action Required)</option>
                     </select>
                   </div>

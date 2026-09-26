@@ -165,16 +165,6 @@ export default function CreateEventPage() {
     }
   };
 
-  const handleFillDemo = () => {
-    setTitle("Campus AI Agents & Automation Hackathon");
-    setLocation("Student Innovation Center Hall B");
-    setDescription(
-      "Join student developers, designers, and AI researchers to build autonomous agent workflows and tools for university students. Food, snacks, and prizes provided."
-    );
-    setCapacity(120);
-    setTags("Hackathon, AI, Python, Open to All");
-    setError(null);
-  };
 
   return (
     <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
@@ -445,22 +435,18 @@ export default function CreateEventPage() {
           </div>
 
           {/* Submit Action */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
-            <button
-              type="button"
-              onClick={handleFillDemo}
-              className="py-2 px-3 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-950/20 text-xs font-medium text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5 hover:bg-indigo-50"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Fill Sample Event Details</span>
-            </button>
-
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-4">
+            <Link href="/events">
+              <Button type="button" variant="outline" size="md">
+                Cancel
+              </Button>
+            </Link>
             <Button
               type="submit"
               size="lg"
               isLoading={isLoading}
               disabled={success}
-              className="font-semibold group"
+              className="font-semibold group bg-indigo-900 hover:bg-indigo-950 text-white"
             >
               <span>Publish Event</span>
               <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />

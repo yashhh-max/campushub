@@ -13,9 +13,9 @@ import { RevealOnScroll } from "@/components/ui/RevealOnScroll";
 const FEATURES = [
   {
     id: "events",
-    title: "Campus Events Discovery",
+    title: "Campus Events & Hackathons",
     description:
-      "Find hackathons, workshops, music concerts, and networking dinners. RSVP in seconds, add to your Google or Apple calendar, and see live attendee counts.",
+      "Discover technical symposiums, hackathons, guest lectures, and campus festivals. Register in seconds, add to your calendar, and manage your verified event passes.",
     icon: CalendarDays,
     badge: "Interactive Calendar",
     color: "from-blue-500/20 to-indigo-500/20 text-indigo-600 dark:text-indigo-400",
@@ -24,36 +24,36 @@ const FEATURES = [
   },
   {
     id: "clubs",
-    title: "Student Clubs & Societies",
+    title: "Student Bodies & Professional Chapters",
     description:
-      "Browse over 120+ student-led chapters across Engineering, Debating, Arts, Entrepreneurship, and Cultural associations with verified meeting schedules.",
+      "Explore official student chapters including IEEE, CSI, NSS, Robotics & AI Society, and IIC Innovation Cell with faculty mentorship and active meeting schedules.",
     icon: Users2,
-    badge: "120+ Active Orgs",
+    badge: "Student Chapters",
     color: "from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400",
     linkText: "Explore organization directory",
     href: "#clubs",
   },
   {
     id: "announcements",
-    title: "Official Announcements",
+    title: "Official Academic Notices & Circulars",
     description:
-      "Direct feed from the Office of the Registrar, Dean of Students, and Campus Safety. Filter by department with push notifications for urgent weather or transit alerts.",
+      "Direct feed from the Controller of Examinations, Training & Placement Cell (TPO), and Academic Deans. Filter by department with alerts for exam and placement updates.",
     icon: Megaphone,
-    badge: "Verified Notices",
+    badge: "Verified Circulars",
     color: "from-emerald-500/20 to-teal-500/20 text-emerald-600 dark:text-emerald-400",
     linkText: "Read announcements",
     href: "#announcements",
   },
   {
-    id: "community",
-    title: "Student Community & Voices",
+    id: "opportunities",
+    title: "Career & Placement Opportunities",
     description:
-      "Connect with peers sharing your major, discover study cohorts, and exchange course insights in a moderated, safe, university-verified environment.",
+      "Connect with marquee industry recruitment drives, verified technical internships, AWS cloud certifications, and national innovation hackathons curated by TPO.",
     icon: HeartHandshake,
-    badge: "Student Powered",
+    badge: "TPO Connect",
     color: "from-purple-500/20 to-pink-500/20 text-purple-600 dark:text-purple-400",
-    linkText: "Meet the community",
-    href: "#community",
+    linkText: "Browse opportunities",
+    href: "#opportunities",
   },
 ];
 

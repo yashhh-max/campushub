@@ -432,4 +432,27 @@ export interface AttendanceStats {
   attendees: AttendeeCheckInRecord[];
 }
 
+export type OpportunityType =
+  | 'Placement Drive'
+  | 'Internship'
+  | 'Hackathon'
+  | 'Workshop'
+  | 'Certification'
+  | 'Competition';
+
+export interface OpportunityItem {
+  id: string | number;
+  title: string;
+  type: OpportunityType;
+  organization: string;
+  location: string;
+  deadline: string;
+  eligibility: string;
+  stipend_or_package?: string;
+  description: string;
+  tags: string[];
+  link?: string;
+  is_verified: boolean;
+}
+
 

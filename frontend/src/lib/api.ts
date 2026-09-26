@@ -1114,7 +1114,7 @@ export async function updateNotificationPreferences(
 }
 
 // ==============================================================================
-// PHASE 6: CLUB CHAT, EVENT Q&A, TICKETS & ATTENDANCE APIS
+// CLUB CHAT, EVENT Q&A, TICKETS & ATTENDANCE APIS
 // ==============================================================================
 
 export async function fetchClubMessages(

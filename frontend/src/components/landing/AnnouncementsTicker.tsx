@@ -13,13 +13,13 @@ export function AnnouncementsTicker() {
         <div className="text-center max-w-2xl mx-auto mb-12">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 mb-3">
             <Megaphone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Direct Administration Feed</span>
+            <span>Institutional Notice Board</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Official Campus Notices & Alerts
+            Official KPRIT Notices &amp; Circulars
           </h2>
           <p className="mt-3 text-base text-slate-600 dark:text-slate-400">
-            Real-time updates from university administration, safety services, and academic registrars.
+            Official bulletins from the Examination Branch, Training &amp; Placement Cell (TPO), and Academic Deans.
           </p>
         </div>
 

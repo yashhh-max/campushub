@@ -20,7 +20,7 @@ export function ClubsPreview() {
               Discover Student Clubs & Chapters
             </h2>
             <p className="mt-2 text-base text-slate-600 dark:text-slate-400 max-w-2xl">
-              Connect with fellow students, build leadership experience, and collaborate on cutting-edge projects across 120+ verified campus organizations.
+              Connect with fellow students, build leadership experience, and collaborate on technical and cultural projects across verified KPRIT student organizations and professional chapters.
             </p>
           </div>
 
