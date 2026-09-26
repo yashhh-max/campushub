@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-// Curated solid flat color sequence matching reference
+// Curated solid flat color sequence
 const COLOR_SEQUENCE = [
   "#E83151", // Hot Pink
   "#3B49DF", // Royal Blue
@@ -36,38 +36,36 @@ const SYMBOLS = [
   "_",
 ] as const;
 
-// Visual scale & spacing parameters
-const TILE_SIZE = 20; // 20px square syntax block
-const STEP_DISTANCE = 19; // 19px center-to-center distance for tightly attached 1px shared border
-const MAX_VISIBLE_TILES = 10; // Compact trail length of 6–10 blocks
-const TILE_LIFETIME_MS = 600; // Smooth 600ms fade lifetime
+// 20px square syntax block
+const CUBE_SIZE = 20;
 
-interface ActiveTile {
-  id: number;
-  x: number;
-  y: number;
-  el: HTMLDivElement;
-}
+// Only create a new cube when the cursor has moved at least one cube width from the last cube
+const MIN_DISTANCE = 20;
+
+// Keep approximately 6–10 visible cubes
+const MAX_VISIBLE_CUBES = 8;
+
+// Smooth fade lifetime in milliseconds
+const FADE_LIFETIME_MS = 600;
 
 /**
  * CursorTrail
- * Simple, natural path-sampled cursor trail of small square syntax blocks.
- * - 20px square cubes with thin dark border (1px) and very small corner radius (1.5px).
- * - Exactly ONE code symbol per cube, centered, flat solid colors.
- * - 0° rotation, no upward drift, no particle scattering, fades in place smoothly.
- * - Cursor path directly controls the geometry:
- *     - Horizontal movement -> straight horizontal chain [=][{][<][+][;][>]
- *     - Vertical movement   -> straight vertical chain
- *     - Turning movement    -> natural corner
- *     - Diagonal movement   -> natural stepped diagonal
- * - Zero artificial clustering, no grid puzzle, no forced perpendicular staggers.
- * - Background decorative layer (z-index: 5, pointer-events: none).
+ * Pure cursor-driven trail of small square syntax blocks.
+ * - Every block: 20px × 20px square, exactly one syntax symbol, colorful solid background, thin dark border.
+ * - Real pixel coordinates: no grid snapping, no lattice, no integer cell division.
+ * - Mouse movement directly determines every cube position:
+ *     - Horizontal movement -> horizontal trail [=][{][<][+][;][>]
+ *     - Vertical movement   -> vertical trail [=][*][#][}][>]
+ *     - Turns / curves      -> natural trail matching mouse trajectory
+ * - Zero artificial pattern generation: no synthetic intermediate steps, no clusters, no forced stagger.
+ * - Distance-based sampling: creates a cube only when cursor moves >= MIN_DISTANCE from last cube.
+ * - Fades in place smoothly; no upward particle drift or scattering.
+ * - Background layer: z-index: 5, pointer-events: none, renders behind buttons/photos/cards.
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const activeTilesRef = useRef<ActiveTile[]>([]);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
-  const nextIdRef = useRef(1);
+  const activeCubesRef = useRef<HTMLDivElement[]>([]);
   const colorIndexRef = useRef(0);
   const lastSymbolRef = useRef("");
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -86,25 +84,12 @@ export function CursorTrail() {
     const container = containerRef.current;
     if (!container) return;
 
-    const isCollidingWithActive = (x: number, y: number): boolean => {
-      for (const t of activeTilesRef.current) {
-        if (Math.abs(t.x - x) < 17 && Math.abs(t.y - y) < 17) {
-          return true;
-        }
-      }
-      return false;
-    };
-
-    const spawnTile = (x: number, y: number): void => {
-      if (isCollidingWithActive(x, y)) {
-        return;
-      }
-
-      // Evict oldest tile when reaching max compact trail length
-      if (activeTilesRef.current.length >= MAX_VISIBLE_TILES) {
-        const oldest = activeTilesRef.current.shift();
+    const spawnCube = (x: number, y: number) => {
+      // Evict oldest cube when reaching max trail length
+      if (activeCubesRef.current.length >= MAX_VISIBLE_CUBES) {
+        const oldest = activeCubesRef.current.shift();
         if (oldest) {
-          oldest.el.remove();
+          oldest.remove();
         }
       }
 
@@ -112,76 +97,72 @@ export function CursorTrail() {
       const color = COLOR_SEQUENCE[colorIndexRef.current % COLOR_SEQUENCE.length];
       colorIndexRef.current += 1;
 
-      // Pick exactly ONE symbol (no consecutive duplicates, zero blank blocks)
+      // Pick exactly ONE symbol (no consecutive duplicate symbols, no blank blocks)
       let symbol = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
       if (symbol === lastSymbolRef.current) {
         symbol = SYMBOLS[(SYMBOLS.indexOf(symbol) + 1) % SYMBOLS.length];
       }
       lastSymbolRef.current = symbol;
 
-      // Create square cube tile
-      const tile = document.createElement("div");
-      tile.textContent = symbol;
+      // Create 20px x 20px square cube element
+      const cube = document.createElement("div");
+      cube.textContent = symbol;
 
-      const left = Math.round(x - TILE_SIZE / 2);
-      const top = Math.round(y - TILE_SIZE / 2);
+      const left = Math.round(x - CUBE_SIZE / 2);
+      const top = Math.round(y - CUBE_SIZE / 2);
 
-      tile.style.position = "fixed";
-      tile.style.left = `${left}px`;
-      tile.style.top = `${top}px`;
-      tile.style.width = `${TILE_SIZE}px`;
-      tile.style.height = `${TILE_SIZE}px`;
-      tile.style.backgroundColor = color;
-      tile.style.color = "#0F172A"; // Dark crisp syntax glyph
-      tile.style.border = "1px solid #0F172A"; // Thin dark border
-      tile.style.borderRadius = "1.5px"; // Subtle 1.5px corner radius
-      tile.style.boxSizing = "border-box";
-      tile.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-      tile.style.fontSize = "12px";
-      tile.style.fontWeight = "800";
-      tile.style.display = "flex";
-      tile.style.alignItems = "center";
-      tile.style.justifyContent = "center";
-      tile.style.pointerEvents = "none";
-      tile.style.userSelect = "none";
-      tile.style.zIndex = "5";
-      tile.style.boxShadow = "none";
-      tile.style.lineHeight = "1";
-      tile.style.willChange = "opacity";
+      cube.style.position = "fixed";
+      cube.style.left = `${left}px`;
+      cube.style.top = `${top}px`;
+      cube.style.width = `${CUBE_SIZE}px`;
+      cube.style.height = `${CUBE_SIZE}px`;
+      cube.style.backgroundColor = color;
+      cube.style.color = "#0F172A"; // Dark crisp syntax glyph
+      cube.style.border = "1px solid #0F172A"; // Thin dark border
+      cube.style.borderRadius = "1.5px"; // 0-2px border radius
+      cube.style.boxSizing = "border-box";
+      cube.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+      cube.style.fontSize = "12px";
+      cube.style.fontWeight = "800";
+      cube.style.display = "flex";
+      cube.style.alignItems = "center";
+      cube.style.justifyContent = "center";
+      cube.style.pointerEvents = "none";
+      cube.style.userSelect = "none";
+      cube.style.zIndex = "5"; // Behind page content / buttons / photos
+      cube.style.lineHeight = "1";
+      cube.style.willChange = "opacity";
 
-      container.appendChild(tile);
+      container.appendChild(cube);
+      activeCubesRef.current.push(cube);
 
-      const tileId = nextIdRef.current++;
-      const tileRecord: ActiveTile = { id: tileId, x, y, el: tile };
-      activeTilesRef.current.push(tileRecord);
-
-      // Anchored in place, fades smoothly without upward drift or rotation
-      const animation = tile.animate(
+      // Stays in place, fades smoothly without upward drift or rotation
+      const anim = cube.animate(
         [
           { opacity: 1 },
           { opacity: 1, offset: 0.45 },
           { opacity: 0, offset: 1.0 },
         ],
         {
-          duration: TILE_LIFETIME_MS,
+          duration: FADE_LIFETIME_MS,
           easing: "ease-out",
           fill: "forwards",
         }
       );
 
-      animation.onfinish = () => {
-        tile.remove();
-        activeTilesRef.current = activeTilesRef.current.filter((t) => t.id !== tileId);
+      anim.onfinish = () => {
+        cube.remove();
+        activeCubesRef.current = activeCubesRef.current.filter((c) => c !== cube);
       };
     };
 
-    const handleMove = (e: MouseEvent | PointerEvent) => {
+    const handlePointerMove = (e: MouseEvent | PointerEvent) => {
       if ("pointerType" in e && (e.pointerType === "touch" || e.pointerType === "pen")) return;
 
       const currentX = e.clientX;
       const currentY = e.clientY;
 
-      // Reset idle timer (clears trail origin when cursor stops for 350ms)
+      // Clear trail origin when mouse rests for 350ms
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
       }
@@ -189,29 +170,23 @@ export function CursorTrail() {
         lastPosRef.current = null;
       }, 350);
 
-      // Start trail at current position if no active origin
+      // First movement event: initialize origin and place first cube
       if (!lastPosRef.current) {
         lastPosRef.current = { x: currentX, y: currentY };
-        spawnTile(currentX, currentY);
+        spawnCube(currentX, currentY);
         return;
       }
 
-      let dx = currentX - lastPosRef.current.x;
-      let dy = currentY - lastPosRef.current.y;
-      let dist = Math.hypot(dx, dy);
+      // Real Euclidean distance from last spawned cube position
+      const distance = Math.hypot(
+        currentX - lastPosRef.current.x,
+        currentY - lastPosRef.current.y
+      );
 
-      // Step along the exact cursor path at STEP_DISTANCE intervals
-      while (dist >= STEP_DISTANCE) {
-        const stepRatio: number = STEP_DISTANCE / dist;
-        const nextX: number = lastPosRef.current.x + dx * stepRatio;
-        const nextY: number = lastPosRef.current.y + dy * stepRatio;
-
-        spawnTile(nextX, nextY);
-        lastPosRef.current = { x: nextX, y: nextY };
-
-        dx = currentX - lastPosRef.current.x;
-        dy = currentY - lastPosRef.current.y;
-        dist = Math.hypot(dx, dy);
+      // Only create a new cube when the cursor has moved at least one cube width from the last cube
+      if (distance >= MIN_DISTANCE) {
+        spawnCube(currentX, currentY);
+        lastPosRef.current = { x: currentX, y: currentY };
       }
     };
 
@@ -219,19 +194,19 @@ export function CursorTrail() {
       lastPosRef.current = null;
     };
 
-    window.addEventListener("pointermove", handleMove, { passive: true });
-    window.addEventListener("mousemove", handleMove, { passive: true });
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("mousemove", handlePointerMove, { passive: true });
     document.addEventListener("pointerleave", handlePointerLeave);
 
     return () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("mousemove", handlePointerMove);
       document.removeEventListener("pointerleave", handlePointerLeave);
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
       }
-      activeTilesRef.current.forEach((t) => t.el.remove());
-      activeTilesRef.current = [];
+      activeCubesRef.current.forEach((c) => c.remove());
+      activeCubesRef.current = [];
       if (container) {
         container.innerHTML = "";
       }
