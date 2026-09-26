@@ -10,7 +10,7 @@ import { CTASection } from "@/components/landing/CTASection";
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen flex flex-col bg-transparent text-slate-900 dark:text-slate-100 transition-colors">
       <Navbar />
 
       <main className="flex-1">

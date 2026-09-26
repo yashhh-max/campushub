@@ -75,9 +75,11 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white bg-slate-50 text-slate-900" style={{ colorScheme: 'light' }}>
         <CursorTrail />
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <div className="relative z-10 flex-1 flex flex-col min-h-screen">
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </div>
       </body>
     </html>
   );

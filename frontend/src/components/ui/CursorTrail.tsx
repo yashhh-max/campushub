@@ -126,7 +126,7 @@ export function CursorTrail() {
       tile.style.justifyContent = "center";
       tile.style.pointerEvents = "none";
       tile.style.userSelect = "none";
-      tile.style.zIndex = "99999";
+      tile.style.zIndex = "5";
       tile.style.boxShadow = "none";
       tile.style.lineHeight = "1";
       tile.style.willChange = "opacity";
@@ -333,7 +333,7 @@ export function CursorTrail() {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 pointer-events-none z-50 overflow-hidden select-none"
+      className="fixed inset-0 pointer-events-none z-[5] overflow-hidden select-none"
       aria-hidden="true"
     />
   );

@@ -49,7 +49,7 @@ export function EventsPreview() {
   };
 
   return (
-    <section id="events" className="py-16 md:py-24 bg-slate-50/60 dark:bg-slate-900/40 border-t border-slate-200/80 dark:border-slate-800/80">
+    <section id="events" className="py-16 md:py-24 bg-transparent border-t border-slate-200/80 dark:border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <RevealOnScroll direction="down" duration={500} className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 gap-4">
