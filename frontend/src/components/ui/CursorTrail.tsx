@@ -53,14 +53,15 @@ const TILE_LIFETIME_MS = 600; // Smooth 600ms fade lifetime
  */
 export function CursorTrail() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastPlacedPointRef = useRef<{ x: number; y: number } | null>(null);
-  const lastAxisRef = useRef<"x" | "y" | null>(null);
-  const axisRunRef = useRef(0);
+  const lastGridRef = useRef<{ gx: number; gy: number } | null>(null);
+  const currentAxisRef = useRef<"x" | "y" | null>(null);
+  const runLengthRef = useRef(0);
+  const staggerSideRef = useRef(1);
   const colorIndexRef = useRef(0);
   const lastSymbolRef = useRef("");
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastProcessedPosRef = useRef<{ x: number; y: number }>({ x: -1, y: -1 });
-  const activeTilesRef = useRef<Array<{ x: number; y: number; el: HTMLDivElement }>>([]);
+  const occupiedCellsRef = useRef<Map<string, { gx: number; gy: number; el: HTMLDivElement }>>(new Map());
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -76,19 +77,20 @@ export function CursorTrail() {
     const container = containerRef.current;
     if (!container) return;
 
-    const spawnTileAt = (x: number, y: number) => {
-      // Prevent overlap with existing active cubes
-      for (let i = 0; i < activeTilesRef.current.length; i++) {
-        const item = activeTilesRef.current[i];
-        if (Math.abs(x - item.x) < 14 && Math.abs(y - item.y) < 14) {
-          return false;
-        }
+    const spawnTileAtGrid = (gx: number, gy: number): boolean => {
+      const key = `${gx},${gy}`;
+      if (occupiedCellsRef.current.has(key)) {
+        return false;
       }
 
-      // Keep trail compact by evicting oldest tile when reaching max length
-      if (activeTilesRef.current.length >= MAX_VISIBLE_TILES) {
-        const oldest = activeTilesRef.current.shift();
-        oldest?.el.remove();
+      // Evict oldest tile when reaching max compact trail length
+      if (occupiedCellsRef.current.size >= MAX_VISIBLE_TILES) {
+        const oldestKey = occupiedCellsRef.current.keys().next().value;
+        if (oldestKey) {
+          const oldest = occupiedCellsRef.current.get(oldestKey);
+          oldest?.el.remove();
+          occupiedCellsRef.current.delete(oldestKey);
+        }
       }
 
       // Pick sequential solid color
@@ -114,7 +116,7 @@ export function CursorTrail() {
       tile.style.backgroundColor = color;
       tile.style.color = "#0F172A"; // Dark crisp syntax glyph
       tile.style.border = "1px solid #0F172A"; // Thin dark border
-      tile.style.borderRadius = "1.5px"; // Very small corner radius (0-2px)
+      tile.style.borderRadius = "1.5px"; // Subtle 1.5px corner radius
       tile.style.boxSizing = "border-box";
       tile.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
       tile.style.fontSize = "12px";
@@ -131,14 +133,15 @@ export function CursorTrail() {
 
       container.appendChild(tile);
 
-      const entry = { x, y, el: tile };
-      activeTilesRef.current.push(entry);
+      occupiedCellsRef.current.set(key, { gx, gy, el: tile });
 
-      const halfSize = TILE_SIZE / 2;
-      const startX = x - halfSize;
-      const startY = y - halfSize;
+      // Physical center coordinates on grid
+      const pixelX = gx * ATTACHED_STEP;
+      const pixelY = gy * ATTACHED_STEP;
+      const startX = pixelX - TILE_SIZE / 2;
+      const startY = pixelY - TILE_SIZE / 2;
 
-      // Anchored along path, holds position, then fades out smoothly in place (zero upward drift, 0deg rotation)
+      // Anchored in place, fades smoothly without upward drift or rotation
       const animation = tile.animate(
         [
           {
@@ -165,11 +168,11 @@ export function CursorTrail() {
 
       animation.onfinish = () => {
         tile.remove();
-        activeTilesRef.current = activeTilesRef.current.filter((item) => item.el !== tile);
-        if (activeTilesRef.current.length === 0) {
-          lastPlacedPointRef.current = null;
-          lastAxisRef.current = null;
-          axisRunRef.current = 0;
+        occupiedCellsRef.current.delete(key);
+        if (occupiedCellsRef.current.size === 0) {
+          lastGridRef.current = null;
+          currentAxisRef.current = null;
+          runLengthRef.current = 0;
         }
       };
 
@@ -196,97 +199,116 @@ export function CursorTrail() {
         clearTimeout(idleTimerRef.current);
       }
       idleTimerRef.current = setTimeout(() => {
-        lastPlacedPointRef.current = null;
-        lastAxisRef.current = null;
-        axisRunRef.current = 0;
+        lastGridRef.current = null;
+        currentAxisRef.current = null;
+        runLengthRef.current = 0;
       }, 400);
 
-      // If trail has reset, start at current cursor position
-      if (!lastPlacedPointRef.current) {
-        lastPlacedPointRef.current = { x: currentX, y: currentY };
-        lastAxisRef.current = null;
-        axisRunRef.current = 0;
-        spawnTileAt(currentX, currentY);
+      const targetGx = Math.round(currentX / ATTACHED_STEP);
+      const targetGy = Math.round(currentY / ATTACHED_STEP);
+
+      // Start trail at cursor target if no active origin
+      if (!lastGridRef.current) {
+        lastGridRef.current = { gx: targetGx, gy: targetGy };
+        currentAxisRef.current = null;
+        runLengthRef.current = 0;
+        spawnTileAtGrid(targetGx, targetGy);
         return;
       }
 
-      let lastX = lastPlacedPointRef.current.x;
-      let lastY = lastPlacedPointRef.current.y;
+      let dgx = targetGx - lastGridRef.current.gx;
+      let dgy = targetGy - lastGridRef.current.gy;
 
-      let dx = currentX - lastX;
-      let dy = currentY - lastY;
-      let dist = Math.hypot(dx, dy);
+      // Advance along grid to follow cursor direction with stepped cluster geometry
+      while (Math.abs(dgx) > 0 || Math.abs(dgy) > 0) {
+        const absX = Math.abs(dgx);
+        const absY = Math.abs(dgy);
 
-      // Subtle perpendicular slope shift (clamped to [-2px, +2px]) keeps edge overlap >= 18px
-      const MAX_SUBTLE_SHIFT = 2;
-
-      // Place attached blocks whenever cursor travels ATTACHED_STEP
-      if (dist >= ATTACHED_STEP) {
-        while (dist >= ATTACHED_STEP) {
-          const absDx = Math.abs(dx);
-          const absDy = Math.abs(dy);
-
-          // Edge-connection decision:
-          // Adjacent blocks must connect by a full edge (horizontal face or vertical face).
-          // Diagonal motion uses short runs of 2 blocks along primary axis then steps,
-          // guaranteeing [■][■] or [■][■][■] shapes and zero corner-only diagonal chains.
-          let stepAxis: "x" | "y";
-          if (absDx >= 1.6 * absDy) {
-            stepAxis = "x";
-          } else if (absDy >= 1.6 * absDx) {
-            stepAxis = "y";
+        // Decide preferred axis:
+        // Capped linear runs prevent collapsing into single 1D column or ribbon.
+        let preferredAxis: "x" | "y";
+        if (absX > 0 && absY > 0) {
+          // Diagonal motion: alternate after 2 blocks on the same axis ([■][■] then [■][■])
+          if (runLengthRef.current >= 2) {
+            preferredAxis = currentAxisRef.current === "x" ? "y" : "x";
+          } else if (absX >= absY) {
+            preferredAxis = "x";
           } else {
-            // Angled/diagonal trajectory:
-            // Allow up to 2 steps on the current axis before stepping orthogonally
-            if (axisRunRef.current >= 2) {
-              stepAxis = lastAxisRef.current === "x" ? "y" : "x";
-            } else if (absDx >= absDy) {
-              stepAxis = "x";
-            } else {
-              stepAxis = "y";
-            }
+            preferredAxis = "y";
           }
-
-          let nextX: number;
-          let nextY: number;
-
-          if (stepAxis === "x") {
-            const sx = absDx > 0 ? Math.sign(dx) * ATTACHED_STEP : ATTACHED_STEP;
-            const sy = absDx > 0 ? Math.max(-MAX_SUBTLE_SHIFT, Math.min(MAX_SUBTLE_SHIFT, (dy / absDx) * 2)) : 0;
-            nextX = lastX + sx;
-            nextY = lastY + sy;
+        } else if (absX > 0) {
+          // Horizontal motion: after 3 blocks, take a perpendicular cluster step
+          if (runLengthRef.current >= 3) {
+            preferredAxis = "y";
           } else {
-            const sy = absDy > 0 ? Math.sign(dy) * ATTACHED_STEP : ATTACHED_STEP;
-            const sx = absDy > 0 ? Math.max(-MAX_SUBTLE_SHIFT, Math.min(MAX_SUBTLE_SHIFT, (dx / absDy) * 2)) : 0;
-            nextX = lastX + sx;
-            nextY = lastY + sy;
+            preferredAxis = "x";
           }
-
-          if (stepAxis === lastAxisRef.current) {
-            axisRunRef.current += 1;
+        } else {
+          // Vertical motion: after 2 blocks, take a perpendicular cluster step
+          if (runLengthRef.current >= 2) {
+            preferredAxis = "x";
           } else {
-            lastAxisRef.current = stepAxis;
-            axisRunRef.current = 1;
+            preferredAxis = "y";
           }
-
-          spawnTileAt(nextX, nextY);
-
-          lastX = nextX;
-          lastY = nextY;
-
-          dx = currentX - lastX;
-          dy = currentY - lastY;
-          dist = Math.hypot(dx, dy);
         }
 
-        lastPlacedPointRef.current = { x: lastX, y: lastY };
+        // Try preferred axis first, fallback to alternate orthogonal axis if cell is occupied
+        const axesToTry: Array<"x" | "y"> = [
+          preferredAxis,
+          preferredAxis === "x" ? "y" : "x",
+        ];
+        const currentGrid = lastGridRef.current;
+        if (!currentGrid) break;
+
+        let stepped = false;
+
+        for (const stepAxis of axesToTry) {
+          let stepDir: number;
+          if (stepAxis === "x") {
+            stepDir = absX > 0 ? (dgx > 0 ? 1 : -1) : staggerSideRef.current;
+          } else {
+            stepDir = absY > 0 ? (dgy > 0 ? 1 : -1) : staggerSideRef.current;
+          }
+
+          const candidateGx: number = currentGrid.gx + (stepAxis === "x" ? stepDir : 0);
+          const candidateGy: number = currentGrid.gy + (stepAxis === "y" ? stepDir : 0);
+          const key = `${candidateGx},${candidateGy}`;
+
+          if (!occupiedCellsRef.current.has(key)) {
+            // If taking a perpendicular stagger step, toggle side for next time
+            if (absX === 0 && stepAxis === "x") {
+              staggerSideRef.current = -staggerSideRef.current;
+            } else if (absY === 0 && stepAxis === "y") {
+              staggerSideRef.current = -staggerSideRef.current;
+            }
+
+            if (stepAxis === currentAxisRef.current) {
+              runLengthRef.current += 1;
+            } else {
+              currentAxisRef.current = stepAxis;
+              runLengthRef.current = 1;
+            }
+
+            spawnTileAtGrid(candidateGx, candidateGy);
+            lastGridRef.current = { gx: candidateGx, gy: candidateGy };
+            stepped = true;
+            break;
+          }
+        }
+
+        if (!stepped) {
+          break; // No adjacent free cell available
+        }
+
+        dgx = targetGx - lastGridRef.current.gx;
+        dgy = targetGy - lastGridRef.current.gy;
       }
     };
 
     const handlePointerLeave = () => {
-      lastPlacedPointRef.current = null;
-      lastAxisRef.current = null;
-      axisRunRef.current = 0;
+      lastGridRef.current = null;
+      currentAxisRef.current = null;
+      runLengthRef.current = 0;
     };
 
     window.addEventListener("pointermove", handleMove, { passive: true });
@@ -300,8 +322,8 @@ export function CursorTrail() {
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
       }
-      activeTilesRef.current.forEach((t) => t.el.remove());
-      activeTilesRef.current = [];
+      occupiedCellsRef.current.forEach((t) => t.el.remove());
+      occupiedCellsRef.current.clear();
       if (container) {
         container.innerHTML = "";
       }
