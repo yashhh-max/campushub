@@ -1,9 +1,14 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { RevealOnScroll } from "@/components/ui/RevealOnScroll";
+import { useAuth } from "@/context/AuthContext";
 
 export function CTASection() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <section className="py-16 md:py-24 bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white relative overflow-hidden">
       {/* Decorative Glow */}
@@ -25,15 +30,27 @@ export function CTASection() {
         </p>
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
-          <Link href="/register" className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto bg-white text-indigo-950 hover:bg-slate-100 shadow-lg hover:shadow-xl font-bold cursor-pointer"
-            >
-              <span>Get Started with Student Portal</span>
-              <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </Link>
+          {isAuthenticated ? (
+            <Link href="/dashboard" className="w-full sm:w-auto">
+              <Button
+                size="lg"
+                className="w-full sm:w-auto bg-white text-indigo-950 hover:bg-slate-100 shadow-lg hover:shadow-xl font-bold cursor-pointer"
+              >
+                <span>Go to Student Dashboard</span>
+                <LayoutDashboard className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/register" className="w-full sm:w-auto">
+              <Button
+                size="lg"
+                className="w-full sm:w-auto bg-white text-indigo-950 hover:bg-slate-100 shadow-lg hover:shadow-xl font-bold cursor-pointer"
+              >
+                <span>Get Started with Student Portal</span>
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+          )}
           <a href="#events" className="w-full sm:w-auto">
             <Button
               variant="ghost"

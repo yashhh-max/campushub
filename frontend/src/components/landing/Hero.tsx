@@ -12,8 +12,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { INSTITUTIONAL_PILLARS } from "@/data/sampleData";
+import { useAuth } from "@/context/AuthContext";
 
 export function Hero() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <section className="relative overflow-hidden pt-10 pb-16 md:pt-16 md:pb-20">
       {/* Subtle Background Collegiate Glow */}
@@ -48,23 +51,45 @@ export function Hero() {
           Discover campus events, student clubs, announcements, opportunities, and everyday college services through one connected KPRIT platform.
         </p>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Authenticated vs Guest */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
-          <Link href="/login" className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto bg-indigo-900 hover:bg-indigo-950 text-white font-bold group shadow-md"
-            >
-              <span>Student Login</span>
-              <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
-            </Button>
-          </Link>
-          <a href="#events" className="w-full sm:w-auto">
-            <Button variant="outline" size="lg" className="w-full sm:w-auto font-medium">
-              <span>Explore Campus</span>
-              <Calendar className="w-4 h-4 ml-1 text-slate-400" />
-            </Button>
-          </a>
+          {isAuthenticated ? (
+            <>
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto bg-indigo-900 hover:bg-indigo-950 text-white font-bold group shadow-md"
+                >
+                  <span>Go to Student Dashboard</span>
+                  <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                </Button>
+              </Link>
+              <Link href="/events" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto font-medium">
+                  <span>Browse Events</span>
+                  <Calendar className="w-4 h-4 ml-1 text-slate-400" />
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto bg-indigo-900 hover:bg-indigo-950 text-white font-bold group shadow-md"
+                >
+                  <span>Student Login</span>
+                  <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                </Button>
+              </Link>
+              <a href="#events" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto font-medium">
+                  <span>Explore Campus</span>
+                  <Calendar className="w-4 h-4 ml-1 text-slate-400" />
+                </Button>
+              </a>
+            </>
+          )}
         </div>
 
         {/* Campus Community Showcase Photo Frame */}
