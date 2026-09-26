@@ -45,7 +45,10 @@ export default function LoginPage() {
         router.push("/");
       }, 800);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to sign in. Please verify your credentials.";
+      let msg = err instanceof Error ? err.message : "Failed to sign in. Please verify your credentials.";
+      if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+        msg = "Unable to connect to KPRIT campus authentication server. Please ensure the backend service is running.";
+      }
       setError(msg);
     } finally {
       setIsLoading(false);

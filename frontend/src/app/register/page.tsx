@@ -84,7 +84,10 @@ export default function RegisterPage() {
         router.push("/");
       }, 1000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Registration failed. Please check your details.";
+      let msg = err instanceof Error ? err.message : "Registration failed. Please check your details.";
+      if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+        msg = "Unable to connect to KPRIT campus authentication server. Please ensure the backend service is running.";
+      }
       setError(msg);
     } finally {
       setIsLoading(false);
