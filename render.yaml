@@ -17,9 +17,9 @@ services:
       - key: ALLOWED_HOSTS
         value: .onrender.com,localhost,127.0.0.1,campushub.kprit,api.campushub.kprit,.kprit
       - key: CORS_ALLOWED_ORIGINS
-        value: https://frontend-psi-roan-84.vercel.app,http://campushub.kprit,https://campushub.kprit,http://campushub.kprit:3000,http://api.campushub.kprit,https://api.campushub.kprit
+        value: https://frontend-psi-roan-84.vercel.app,https://campushub-kprit.vercel.app,http://campushub.kprit,https://campushub.kprit,http://campushub.kprit:3000,http://api.campushub.kprit,https://api.campushub.kprit
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://frontend-psi-roan-84.vercel.app,https://*.onrender.com,http://campushub.kprit,https://campushub.kprit,http://campushub.kprit:3000,http://api.campushub.kprit,https://api.campushub.kprit
+        value: https://frontend-psi-roan-84.vercel.app,https://campushub-kprit.vercel.app,https://*.onrender.com,http://campushub.kprit,https://campushub.kprit,http://campushub.kprit:3000,http://api.campushub.kprit,https://api.campushub.kprit
       - key: USE_REDIS_CHANNEL_LAYER
         value: "True"
       - key: DATABASE_URL

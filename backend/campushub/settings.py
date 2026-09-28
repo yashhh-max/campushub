@@ -245,6 +245,7 @@ _default_cors = [
     'https://campushub.kpritech.ac.in',
     'https://api.campushub.kpritech.ac.in',
     'https://frontend-psi-roan-84.vercel.app',
+    'https://campushub-kprit.vercel.app',
 ]
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
@@ -277,6 +278,7 @@ _default_csrf = [
     'https://campushub.kpritech.ac.in',
     'https://api.campushub.kpritech.ac.in',
     'https://frontend-psi-roan-84.vercel.app',
+    'https://campushub-kprit.vercel.app',
 ]
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
