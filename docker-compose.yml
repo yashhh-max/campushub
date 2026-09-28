@@ -52,8 +52,8 @@ services:
       - DATABASE_URL=postgres://${POSTGRES_USER:-campushub_user}:${POSTGRES_PASSWORD:-campushub_secret}@db:5432/${POSTGRES_DB:-campushub_db}
       - REDIS_URL=redis://redis:6379/0
       - USE_REDIS_CHANNEL_LAYER=True
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,campushub-backend
-      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,campushub-backend,campushub.kprit,api.campushub.kprit,.kprit
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://campushub.kprit,https://campushub.kprit,http://campushub.kprit:3000,http://api.campushub.kprit,https://api.campushub.kprit
     depends_on:
       db:
         condition: service_healthy

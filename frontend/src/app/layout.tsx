@@ -11,6 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://campushub.kprit"),
   title: {
     default: "KPRIT CampusHub | Kommuri Pratap Reddy Institute of Technology",
     template: "%s | KPRIT CampusHub",
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://kpritech.ac.in",
+    url: "https://campushub.kprit",
     title: "KPRIT CampusHub — Digital Campus Platform",
     description:
       "Everything KPRIT Students Need, In One Place. Events, student chapters, announcements, and career opportunities.",

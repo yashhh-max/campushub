@@ -33,11 +33,15 @@ if not DEBUG and ('insecure' in SECRET_KEY or len(SECRET_KEY) < 32):
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    for host in os.getenv(
+        'ALLOWED_HOSTS',
+        'localhost,127.0.0.1,campushub.kprit,api.campushub.kprit,.kprit,campushub.kpritech.ac.in,api.campushub.kpritech.ac.in'
+    ).split(',')
     if host.strip()
 ]
-if 'testserver' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append('testserver')
+for default_domain in ['campushub.kprit', 'api.campushub.kprit', '.kprit', 'testserver']:
+    if default_domain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(default_domain)
 
 
 # Custom User Model
@@ -229,25 +233,62 @@ ALLOWED_STUDENT_EMAIL_DOMAINS = [
 ]
 
 # CORS Configuration
+_default_cors = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://campushub.kprit',
+    'https://campushub.kprit',
+    'http://campushub.kprit:3000',
+    'http://api.campushub.kprit',
+    'https://api.campushub.kprit',
+    'http://api.campushub.kprit:8000',
+    'https://campushub.kpritech.ac.in',
+    'https://api.campushub.kpritech.ac.in',
+    'https://frontend-psi-roan-84.vercel.app',
+]
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         'CORS_ALLOWED_ORIGINS',
-        'http://localhost:3000,http://127.0.0.1:3000'
+        ','.join(_default_cors)
     ).split(',')
     if origin.strip()
 ]
+for _origin in _default_cors:
+    if _origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(_origin)
+
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https?://.*\.kprit(:[0-9]+)?$",
+    r"^https?://.*\.kpritech\.ac\.in$",
+    r"^https://.*\.vercel\.app$",
+]
 
 # CSRF Configuration
+_default_csrf = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://campushub.kprit',
+    'https://campushub.kprit',
+    'http://campushub.kprit:3000',
+    'http://api.campushub.kprit',
+    'https://api.campushub.kprit',
+    'https://campushub.kpritech.ac.in',
+    'https://api.campushub.kpritech.ac.in',
+    'https://frontend-psi-roan-84.vercel.app',
+]
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         'CSRF_TRUSTED_ORIGINS',
-        'http://localhost:3000,http://127.0.0.1:3000'
+        ','.join(_default_csrf)
     ).split(',')
     if origin.strip()
 ]
+for _origin in _default_csrf:
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
 
 # Production Security Headers & SSL
 SECURE_BROWSER_XSS_FILTER = True
