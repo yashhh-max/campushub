@@ -15,7 +15,10 @@ from rest_framework.pagination import PageNumberPagination
 from .models import (
     Club, Event, EventRSVP, Announcement, ClubMembership, ClubPost,
     Notification, NotificationPreference, ClubMessage, EventQuestion,
-    EventQuestionUpvote, EventAnswer, EventTicket
+    EventQuestionUpvote, EventAnswer, EventTicket, Department,
+    Opportunity, OpportunityApplication, ApprovalRequest, AuditLog,
+    SystemSetting, Company, PlacementDrive, PlacementApplication,
+    PlacementInterview
 )
 from .serializers import (
     ClubSerializer,
@@ -36,6 +39,46 @@ from .serializers import (
     EventQuestionSerializer,
     EventAnswerSerializer,
     EventTicketSerializer,
+    DepartmentSerializer,
+    OpportunitySerializer,
+    OpportunityApplicationSerializer,
+    ApprovalRequestSerializer,
+    AuditLogSerializer,
+    SystemSettingSerializer,
+    CompanySerializer,
+    PlacementDriveSerializer,
+    PlacementApplicationSerializer,
+    PlacementInterviewSerializer,
+)
+from users.permissions import (
+    has_permission,
+    IsInstitutionalAdmin,
+    IsTPOAdmin,
+    IsCollegeAdmin,
+    IsSuperAdmin,
+    USER_VIEW,
+    USER_EDIT,
+    USER_DISABLE,
+    EVENT_CREATE,
+    EVENT_EDIT,
+    EVENT_APPROVE,
+    EVENT_PUBLISH,
+    EVENT_DELETE,
+    CLUB_CREATE,
+    CLUB_APPROVE,
+    CLUB_MANAGE,
+    ANNOUNCEMENT_CREATE,
+    ANNOUNCEMENT_APPROVE,
+    ANNOUNCEMENT_PUBLISH,
+    OPPORTUNITY_CREATE,
+    OPPORTUNITY_APPROVE,
+    OPPORTUNITY_MANAGE,
+    PLACEMENT_CREATE,
+    PLACEMENT_EDIT,
+    PLACEMENT_VIEW,
+    REPORT_VIEW,
+    AUDIT_VIEW,
+    SYSTEM_SETTINGS,
 )
 from .permissions import (
     CanCreateEvent,
@@ -1893,5 +1936,925 @@ class EventAttendanceExportView(APIView):
             ])
 
         return response
+
+
+# ==============================================================================
+# Institutional Department Management Views
+# ==============================================================================
+
+class DepartmentListView(APIView):
+    """
+    List and create KPRIT academic departments.
+    """
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsInstitutionalAdmin()]
+
+    def get(self, request):
+        departments = Department.objects.all().order_by('code')
+        serializer = DepartmentSerializer(departments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        if not has_permission(request.user, SYSTEM_SETTINGS) and not request.user.role in ('college_admin', 'super_admin', 'admin'):
+            return Response({"error": "Permission denied: Requires institutional administrator privileges."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = DepartmentSerializer(data=request.data)
+        if serializer.is_valid():
+            dept = serializer.save()
+            AuditLog.objects.create(
+                actor=request.user,
+                action="DEPARTMENT_CREATE",
+                resource_type="Department",
+                resource_id=str(dept.id),
+                details={"code": dept.code, "name": dept.name},
+                ip_address=request.META.get('REMOTE_ADDR', '')
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DepartmentDetailView(APIView):
+    """
+    Retrieve, update, or deactivate individual KPRIT departments.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsInstitutionalAdmin]
+
+    def get_object(self, pk):
+        try:
+            return Department.objects.get(pk=pk)
+        except Department.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        dept = self.get_object(pk)
+        if not dept:
+            return Response({"error": "Department not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(DepartmentSerializer(dept).data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        dept = self.get_object(pk)
+        if not dept:
+            return Response({"error": "Department not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = DepartmentSerializer(dept, data=request.data, partial=True)
+        if serializer.is_valid():
+            dept = serializer.save()
+            AuditLog.objects.create(
+                actor=request.user,
+                action="DEPARTMENT_UPDATE",
+                resource_type="Department",
+                resource_id=str(dept.id),
+                details={"updated_fields": list(request.data.keys())},
+                ip_address=request.META.get('REMOTE_ADDR', '')
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ==============================================================================
+# Unified Institutional Approval Center Views
+# ==============================================================================
+
+class ApprovalRequestListView(APIView):
+    """
+    Unified approval queue for Events, Clubs, Announcements, Opportunities.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsInstitutionalAdmin]
+
+    def get(self, request):
+        qs = ApprovalRequest.objects.all().select_related('requested_by', 'reviewer')
+
+        item_type = request.query_params.get('item_type')
+        if item_type:
+            qs = qs.filter(item_type=item_type)
+
+        req_status = request.query_params.get('status', 'pending')
+        if req_status != 'all':
+            qs = qs.filter(status=req_status)
+
+        serializer = ApprovalRequestSerializer(qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ApprovalActionView(APIView):
+    """
+    Process an approval request: approve, reject, or request changes.
+    Automatically synchronizes underlying resource status and logs audit event.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsInstitutionalAdmin]
+
+    def post(self, request, pk):
+        try:
+            req = ApprovalRequest.objects.get(pk=pk)
+        except ApprovalRequest.DoesNotExist:
+            return Response({"error": "Approval request not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        action = request.data.get('action') # 'approve', 'reject', 'changes_requested'
+        notes = request.data.get('notes', '')
+
+        if action not in ('approve', 'reject', 'changes_requested'):
+            return Response({"error": "Invalid action. Must be 'approve', 'reject', or 'changes_requested'."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update ApprovalRequest
+        new_status = 'approved' if action == 'approve' else ('rejected' if action == 'reject' else 'changes_requested')
+        req.status = new_status
+        req.reviewer = request.user
+        req.reviewer_notes = notes
+        req.reviewed_at = timezone.now()
+        req.save()
+
+        # Synchronize target entity
+        target_updated = False
+        if req.item_type == 'event':
+            try:
+                ev = Event.objects.get(pk=req.item_id)
+                ev.status = 'approved' if action == 'approve' else ('cancelled' if action == 'reject' else 'draft')
+                ev.approved_by = request.user
+                ev.approval_notes = notes
+                ev.save()
+                target_updated = True
+            except Event.DoesNotExist:
+                pass
+        elif req.item_type == 'club':
+            try:
+                cl = Club.objects.get(pk=req.item_id)
+                cl.status = 'approved' if action == 'approve' else 'rejected'
+                cl.is_approved = (action == 'approve')
+                cl.approved_by = request.user
+                cl.approval_notes = notes
+                cl.save()
+                target_updated = True
+            except Club.DoesNotExist:
+                pass
+        elif req.item_type == 'announcement':
+            try:
+                ann = Announcement.objects.get(pk=req.item_id)
+                ann.status = 'approved' if action == 'approve' else 'draft'
+                ann.approved_by = request.user
+                ann.save()
+                target_updated = True
+            except Announcement.DoesNotExist:
+                pass
+        elif req.item_type == 'opportunity':
+            try:
+                opp = Opportunity.objects.get(pk=req.item_id)
+                opp.status = 'approved' if action == 'approve' else 'draft'
+                opp.approved_by = request.user
+                opp.save()
+                target_updated = True
+            except Opportunity.DoesNotExist:
+                pass
+
+        # Audit log
+        AuditLog.objects.create(
+            actor=request.user,
+            action=f"APPROVAL_{action.upper()}",
+            resource_type=req.item_type.upper(),
+            resource_id=str(req.item_id),
+            details={"approval_id": req.id, "status": new_status, "notes": notes},
+            ip_address=request.META.get('REMOTE_ADDR', '')
+        )
+
+        return Response({
+            "message": f"Approval request marked as {new_status}.",
+            "approval": ApprovalRequestSerializer(req).data,
+            "target_updated": target_updated
+        }, status=status.HTTP_200_OK)
+
+
+# ==============================================================================
+# Institutional Opportunity Hub Views
+# ==============================================================================
+
+class OpportunityListView(APIView):
+    """
+    List and create student opportunities (internships, hackathons, workshops, scholarships).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        is_staff_user = user.role in ('college_admin', 'super_admin', 'admin', 'tpo_admin', 'department_admin') or user.is_staff
+
+        if is_staff_user:
+            qs = Opportunity.objects.all()
+        else:
+            qs = Opportunity.objects.filter(status='published')
+
+        opp_type = request.query_params.get('type')
+        if opp_type:
+            qs = qs.filter(opportunity_type=opp_type)
+
+        search = request.query_params.get('search')
+        if search:
+            qs = qs.filter(
+                models.Q(title__icontains=search) |
+                models.Q(organization__icontains=search) |
+                models.Q(description__icontains=search)
+            )
+
+        serializer = OpportunitySerializer(qs.order_by('deadline'), many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        if not (has_permission(request.user, OPPORTUNITY_CREATE) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied: Requires opportunity creator rights."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = OpportunitySerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            opp = serializer.save(created_by=request.user)
+
+            # Create approval request if not superadmin
+            if request.user.role not in ('super_admin', 'college_admin', 'admin'):
+                opp.status = 'pending_approval'
+                opp.save()
+                ApprovalRequest.objects.create(
+                    item_type='opportunity',
+                    item_id=opp.id,
+                    title=opp.title,
+                    summary=f"Opportunity proposed by {request.user.full_name}: {opp.organization} ({opp.opportunity_type})",
+                    requested_by=request.user,
+                    status='pending'
+                )
+
+            AuditLog.objects.create(
+                actor=request.user,
+                action="OPPORTUNITY_CREATE",
+                resource_type="Opportunity",
+                resource_id=str(opp.id),
+                details={"title": opp.title, "type": opp.opportunity_type},
+                ip_address=request.META.get('REMOTE_ADDR', '')
+            )
+            return Response(OpportunitySerializer(opp, context={'request': request}).data, status=status.HTTP_201_CREATED)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OpportunityDetailView(APIView):
+    """
+    Retrieve, update, or remove opportunity postings.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            opp = Opportunity.objects.get(pk=pk)
+        except Opportunity.DoesNotExist:
+            return Response({"error": "Opportunity not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(OpportunitySerializer(opp, context={'request': request}).data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        if not (has_permission(request.user, OPPORTUNITY_MANAGE) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            opp = Opportunity.objects.get(pk=pk)
+        except Opportunity.DoesNotExist:
+            return Response({"error": "Opportunity not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = OpportunitySerializer(opp, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            opp = serializer.save()
+            return Response(OpportunitySerializer(opp, context={'request': request}).data, status=status.HTTP_200_OK)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OpportunityApplyView(APIView):
+    """
+    Allows authenticated students to register / submit an application for an opportunity.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            opp = Opportunity.objects.get(pk=pk)
+        except Opportunity.DoesNotExist:
+            return Response({"error": "Opportunity not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if opp.status != 'published':
+            return Response({"error": "Applications are not currently open for this opportunity."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if OpportunityApplication.objects.filter(opportunity=opp, student=request.user).exists():
+            return Response({"error": "You have already applied for this opportunity."}, status=status.HTTP_400_BAD_REQUEST)
+
+        resume_url = request.data.get('resume_url', '')
+        notes = request.data.get('notes', '')
+
+        app = OpportunityApplication.objects.create(
+            opportunity=opp,
+            student=request.user,
+            resume_url=resume_url or getattr(request.user.profile, 'resume_url', ''),
+            notes=notes,
+            status='applied'
+        )
+
+        return Response({
+            "message": "Application submitted successfully.",
+            "application": OpportunityApplicationSerializer(app).data
+        }, status=status.HTTP_201_CREATED)
+
+
+class OpportunityApplicantsView(APIView):
+    """
+    List student applicants for an opportunity.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsInstitutionalAdmin]
+
+    def get(self, request, pk):
+        try:
+            opp = Opportunity.objects.get(pk=pk)
+        except Opportunity.DoesNotExist:
+            return Response({"error": "Opportunity not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        apps = opp.applications.all().select_related('student__profile')
+        return Response(OpportunityApplicationSerializer(apps, many=True).data, status=status.HTTP_200_OK)
+
+
+# ==============================================================================
+# Training & Placement Office (TPO) Views
+# ==============================================================================
+
+class CompanyListView(APIView):
+    """
+    List and register recruiting corporate partners for KPRIT.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        companies = Company.objects.all().order_by('name')
+        return Response(CompanySerializer(companies, many=True).data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        if not (has_permission(request.user, PLACEMENT_CREATE) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied: TPO privileges required."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = CompanySerializer(data=request.data)
+        if serializer.is_valid():
+            company = serializer.save()
+            AuditLog.objects.create(
+                actor=request.user,
+                action="COMPANY_CREATE",
+                resource_type="Company",
+                resource_id=str(company.id),
+                details={"name": company.name, "tier": company.tier},
+                ip_address=request.META.get('REMOTE_ADDR', '')
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CompanyDetailView(APIView):
+    """
+    Retrieve or update individual recruiting company profile.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            comp = Company.objects.get(pk=pk)
+        except Company.DoesNotExist:
+            return Response({"error": "Company not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(CompanySerializer(comp).data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        if not (has_permission(request.user, PLACEMENT_EDIT) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied: TPO privileges required."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            comp = Company.objects.get(pk=pk)
+        except Company.DoesNotExist:
+            return Response({"error": "Company not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = CompanySerializer(comp, data=request.data, partial=True)
+        if serializer.is_valid():
+            comp = serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PlacementDriveListView(APIView):
+    """
+    List and create recruitment drives with database-driven eligibility rules.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        is_tpo = user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin') or user.is_staff
+
+        if is_tpo:
+            qs = PlacementDrive.objects.all()
+        else:
+            qs = PlacementDrive.objects.filter(status='active')
+
+        company_id = request.query_params.get('company')
+        if company_id:
+            qs = qs.filter(company_id=company_id)
+
+        serializer = PlacementDriveSerializer(qs.select_related('company').order_by('-drive_date'), many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        if not (has_permission(request.user, PLACEMENT_CREATE) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied: TPO privileges required."}, status=status.HTTP_403_FORBIDDEN)
+
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        if 'company_id' in data and 'company' not in data:
+            data['company'] = data['company_id']
+        serializer = PlacementDriveSerializer(data=data, context={'request': request})
+        if serializer.is_valid():
+            drive = serializer.save(created_by=request.user)
+            AuditLog.objects.create(
+                actor=request.user,
+                action="PLACEMENT_DRIVE_CREATE",
+                resource_type="PlacementDrive",
+                resource_id=str(drive.id),
+                details={"title": drive.title, "package_lpa": str(drive.package_lpa)},
+                ip_address=request.META.get('REMOTE_ADDR', '')
+            )
+            return Response(PlacementDriveSerializer(drive, context={'request': request}).data, status=status.HTTP_201_CREATED)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PlacementDriveDetailView(APIView):
+    """
+    Retrieve or update specific placement drive details.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            drive = PlacementDrive.objects.select_related('company').get(pk=pk)
+        except PlacementDrive.DoesNotExist:
+            return Response({"error": "Placement drive not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(PlacementDriveSerializer(drive, context={'request': request}).data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        if not (has_permission(request.user, PLACEMENT_EDIT) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied: TPO privileges required."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            drive = PlacementDrive.objects.get(pk=pk)
+        except PlacementDrive.DoesNotExist:
+            return Response({"error": "Placement drive not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = PlacementDriveSerializer(drive, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            drive = serializer.save()
+            return Response(PlacementDriveSerializer(drive, context={'request': request}).data, status=status.HTTP_200_OK)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PlacementDriveEligibilityCheckView(APIView):
+    """
+    Pre-flight verification: evaluates student eligibility against database-driven criteria.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            drive = PlacementDrive.objects.get(pk=pk)
+        except PlacementDrive.DoesNotExist:
+            return Response({"error": "Placement drive not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        eligible, reasons = drive.is_student_eligible(request.user)
+        has_applied = drive.applications.filter(student=request.user).exists()
+
+        return Response({
+            "drive_id": drive.id,
+            "drive_title": drive.title,
+            "is_eligible": eligible,
+            "reasons": reasons,
+            "has_applied": has_applied,
+        }, status=status.HTTP_200_OK)
+
+
+class PlacementDriveApplyView(APIView):
+    """
+    Registers a student for a placement drive.
+    Performs strict server-side eligibility check against database parameters.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            drive = PlacementDrive.objects.get(pk=pk)
+        except PlacementDrive.DoesNotExist:
+            return Response({"error": "Placement drive not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Enforce server-side eligibility check
+        eligible, reasons = drive.is_student_eligible(request.user)
+        if not eligible:
+            return Response({
+                "error": "You do not meet the institutional eligibility criteria for this recruitment drive.",
+                "reasons": reasons
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Check existing registration
+        if PlacementApplication.objects.filter(drive=drive, student=request.user).exists():
+            return Response({"error": "You are already registered for this placement drive."}, status=status.HTTP_400_BAD_REQUEST)
+
+        profile = getattr(request.user, 'profile', None)
+        resume_url = request.data.get('resume_url', '') or (profile.resume_url if profile else '')
+
+        app = PlacementApplication.objects.create(
+            drive=drive,
+            student=request.user,
+            cgpa_at_application=profile.cgpa if profile else None,
+            resume_url=resume_url,
+            status='applied'
+        )
+
+        AuditLog.objects.create(
+            actor=request.user,
+            action="PLACEMENT_APPLY",
+            resource_type="PlacementApplication",
+            resource_id=str(app.id),
+            details={"drive_id": drive.id, "company": drive.company.name},
+            ip_address=request.META.get('REMOTE_ADDR', '')
+        )
+
+        return Response({
+            "message": "Successfully registered for placement drive.",
+            "application": PlacementApplicationSerializer(app).data
+        }, status=status.HTTP_201_CREATED)
+
+
+class PlacementDriveApplicationsView(APIView):
+    """
+    Manage student applications for a placement drive.
+    Allows TPO admins to filter, update applicant stages (shortlisted, selected, rejected).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        if not (has_permission(request.user, PLACEMENT_VIEW) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied: TPO privileges required."}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            drive = PlacementDrive.objects.get(pk=pk)
+        except PlacementDrive.DoesNotExist:
+            return Response({"error": "Placement drive not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        apps = drive.applications.all().select_related('student__profile', 'drive__company')
+        stage = request.query_params.get('status')
+        if stage:
+            apps = apps.filter(status=stage)
+
+        return Response(PlacementApplicationSerializer(apps, many=True).data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        """
+        Update candidate application status e.g. status='selected'
+        """
+        if not (has_permission(request.user, PLACEMENT_EDIT) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        app_id = request.data.get('application_id')
+        new_status = request.data.get('status')
+
+        if not app_id or not new_status:
+            return Response({"error": "application_id and status are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            app = PlacementApplication.objects.get(pk=app_id, drive_id=pk)
+        except PlacementApplication.DoesNotExist:
+            return Response({"error": "Application not found for this drive."}, status=status.HTTP_404_NOT_FOUND)
+
+        app.status = new_status
+        app.status_notes = request.data.get('notes', app.status_notes)
+        app.save()
+
+        # If student is selected, update student profile is_placed flag
+        if new_status == 'selected':
+            profile = getattr(app.student, 'profile', None)
+            if profile:
+                profile.is_placed = True
+                profile.save()
+
+        return Response(PlacementApplicationSerializer(app).data, status=status.HTTP_200_OK)
+
+
+class PlacementInterviewListView(APIView):
+    """
+    Schedule and view interview rounds for placement candidates.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if not (has_permission(request.user, PLACEMENT_VIEW) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        drive_id = request.query_params.get('drive_id')
+        qs = PlacementInterview.objects.all().select_related('application__student__profile', 'application__drive__company')
+        if drive_id:
+            qs = qs.filter(application__drive_id=drive_id)
+
+        return Response(PlacementInterviewSerializer(qs, many=True).data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        if not (has_permission(request.user, PLACEMENT_EDIT) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied: TPO privileges required."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = PlacementInterviewSerializer(data=request.data)
+        if serializer.is_valid():
+            interview = serializer.save()
+            # Advance application status to interview_scheduled
+            app = interview.application
+            if app.status == 'applied':
+                app.status = 'interview_scheduled'
+                app.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TPOStudentMasterView(APIView):
+    """
+    Master student directory for TPO coordinators: view CGPA, backlogs, branch, and placed status.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsInstitutionalAdmin]
+
+    def get(self, request):
+        if not (has_permission(request.user, PLACEMENT_VIEW) or request.user.role in ('tpo_admin', 'college_admin', 'super_admin', 'admin')):
+            return Response({"error": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        students = User.objects.filter(role='student').select_related('profile').order_by('profile__department', 'profile__student_id')
+
+        dept = request.query_params.get('department')
+        if dept:
+            students = students.filter(profile__department__iexact=dept)
+
+        placed = request.query_params.get('is_placed')
+        if placed is not None and placed != '':
+            students = students.filter(profile__is_placed=placed.lower() in ('true', '1'))
+
+        grad_yr = request.query_params.get('graduation_year')
+        if grad_yr:
+            students = students.filter(profile__graduation_year=grad_yr)
+
+        from users.serializers import UserSerializer
+        return Response(UserSerializer(students, many=True).data, status=status.HTTP_200_OK)
+
+
+class TPOReportsView(APIView):
+    """
+    Comprehensive placement report and metrics based strictly on database records.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsInstitutionalAdmin]
+
+    def get(self, request):
+        from users.models import StudentProfile
+
+        total_registered_students = StudentProfile.objects.count()
+        total_eligible_students = StudentProfile.objects.filter(backlogs=0).count()
+        total_placed_students = StudentProfile.objects.filter(is_placed=True).count()
+        placement_rate_pct = round((total_placed_students / max(total_registered_students, 1)) * 100, 1)
+
+        drives_count = PlacementDrive.objects.count()
+        companies_count = Company.objects.count()
+        applications_count = PlacementApplication.objects.count()
+        offers_count = PlacementApplication.objects.filter(status='selected').count()
+
+        # Department breakdown
+        dept_breakdown = []
+        departments = Department.objects.filter(is_active=True)
+        for dept in departments:
+            d_students = StudentProfile.objects.filter(department__iexact=dept.code).count()
+            d_placed = StudentProfile.objects.filter(department__iexact=dept.code, is_placed=True).count()
+            dept_breakdown.append({
+                "department": dept.code,
+                "name": dept.name,
+                "total_students": d_students,
+                "placed_students": d_placed,
+                "placement_rate": round((d_placed / max(d_students, 1)) * 100, 1)
+            })
+
+        return Response({
+            "total_registered_students": total_registered_students,
+            "total_eligible_students": total_eligible_students,
+            "total_placed_students": total_placed_students,
+            "placement_rate_pct": placement_rate_pct,
+            "total_companies": companies_count,
+            "total_drives": drives_count,
+            "total_applications": applications_count,
+            "total_offers": offers_count,
+            "department_breakdown": dept_breakdown,
+        }, status=status.HTTP_200_OK)
+
+
+# ==============================================================================
+# Institutional Analytics & Audit Views
+# ==============================================================================
+
+class AdminAnalyticsView(APIView):
+    """
+    Institutional analytics computed live from active database records.
+    Zero fabrication: returns 0 or empty states when records do not exist.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsInstitutionalAdmin]
+
+    def get(self, request):
+        from users.models import StudentProfile, FacultyProfile
+
+        total_students = User.objects.filter(role='student').count()
+        total_faculty = User.objects.filter(role__in=['faculty', 'department_admin']).count()
+        total_clubs = Club.objects.filter(is_approved=True).count()
+        pending_clubs = Club.objects.filter(status='pending_approval').count()
+
+        total_events = Event.objects.count()
+        published_events = Event.objects.filter(status__in=['published', 'registration_open']).count()
+        total_rsvps = EventRSVP.objects.filter(status='attending').count()
+        checked_in_attendance = EventTicket.objects.filter(is_checked_in=True).count()
+
+        total_drives = PlacementDrive.objects.count()
+        active_drives = PlacementDrive.objects.filter(status='active').count()
+        total_companies = Company.objects.filter(is_active=True).count()
+        placed_students = StudentProfile.objects.filter(is_placed=True).count()
+
+        pending_approvals = ApprovalRequest.objects.filter(status='pending').count()
+        total_opportunities = Opportunity.objects.filter(status='published').count()
+
+        # Category distribution of events
+        cat_stats = []
+        for cat, _ in Event.CATEGORY_CHOICES:
+            cnt = Event.objects.filter(category=cat).count()
+            cat_stats.append({"category": cat, "count": cnt})
+
+        # Department student distribution
+        dept_stats = []
+        for d in Department.objects.filter(is_active=True):
+            cnt = StudentProfile.objects.filter(department__iexact=d.code).count()
+            dept_stats.append({"department": d.code, "count": cnt})
+
+        return Response({
+            "metrics": {
+                "total_students": total_students,
+                "total_faculty": total_faculty,
+                "total_clubs": total_clubs,
+                "pending_clubs": pending_clubs,
+                "total_events": total_events,
+                "published_events": published_events,
+                "total_rsvps": total_rsvps,
+                "checked_in_attendance": checked_in_attendance,
+                "attendance_rate_pct": round((checked_in_attendance / max(total_rsvps, 1)) * 100, 1),
+                "total_companies": total_companies,
+                "total_drives": total_drives,
+                "active_drives": active_drives,
+                "placed_students": placed_students,
+                "pending_approvals": pending_approvals,
+                "total_opportunities": total_opportunities,
+            },
+            "event_category_distribution": cat_stats,
+            "department_distribution": dept_stats,
+        }, status=status.HTTP_200_OK)
+
+
+class AuditLogListView(APIView):
+    """
+    Searchable and filterable administrative audit trail.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsInstitutionalAdmin]
+
+    def get(self, request):
+        if not (has_permission(request.user, AUDIT_VIEW) or request.user.role in ('super_admin', 'college_admin', 'admin')):
+            return Response({"error": "Permission denied: AUDIT_VIEW required."}, status=status.HTTP_403_FORBIDDEN)
+
+        qs = AuditLog.objects.all().select_related('actor').order_by('-created_at')
+
+        action = request.query_params.get('action')
+        if action:
+            qs = qs.filter(action__icontains=action)
+
+        res_type = request.query_params.get('resource_type')
+        if res_type:
+            qs = qs.filter(resource_type__iexact=res_type)
+
+        search = request.query_params.get('search')
+        if search:
+            qs = qs.filter(
+                models.Q(action__icontains=search) |
+                models.Q(resource_type__icontains=search) |
+                models.Q(resource_id__icontains=search) |
+                models.Q(actor__email__icontains=search) |
+                models.Q(actor__full_name__icontains=search)
+            )
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 25
+        page = paginator.paginate_queryset(qs, request)
+        serializer = AuditLogSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+
+class SystemSettingListView(APIView):
+    """
+    Institutional configuration settings.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsInstitutionalAdmin]
+
+    def get(self, request):
+        settings = SystemSetting.objects.all().order_by('key')
+        return Response(SystemSettingSerializer(settings, many=True).data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        if not (has_permission(request.user, SYSTEM_SETTINGS) or request.user.role in ('super_admin', 'admin')):
+            return Response({"error": "Permission denied: SYSTEM_SETTINGS required."}, status=status.HTTP_403_FORBIDDEN)
+
+        key = request.data.get('key')
+        value = request.data.get('value')
+        description = request.data.get('description', '')
+
+        if not key:
+            return Response({"error": "Key is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        setting, _ = SystemSetting.objects.update_or_create(
+            key=key,
+            defaults={
+                "value": value,
+                "description": description,
+                "updated_by": request.user,
+            }
+        )
+
+        AuditLog.objects.create(
+            actor=request.user,
+            action="SYSTEM_SETTING_UPDATE",
+            resource_type="SystemSetting",
+            resource_id=key,
+            details={"value": value},
+            ip_address=request.META.get('REMOTE_ADDR', '')
+        )
+
+        return Response(SystemSettingSerializer(setting).data, status=status.HTTP_200_OK)
+
+
+class AdminBroadcastNotificationView(APIView):
+    """
+    Enables administrators to broadcast targeted campus notifications
+    to all students, department, graduation year, section, faculty, or TPO applicants.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsInstitutionalAdmin]
+
+    def post(self, request):
+        title = request.data.get('title')
+        message = request.data.get('message')
+        target_group = request.data.get('target_group', 'all_students') # 'all_students', 'department', 'year', 'section', 'faculty', 'tpo_applicants'
+        target_val = request.data.get('target_value', '')
+
+        if not title or not message:
+            return Response({"error": "Title and message are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        recipients_qs = User.objects.none()
+
+        if target_group == 'all_students':
+            recipients_qs = User.objects.filter(role='student', is_active=True)
+        elif target_group == 'department':
+            recipients_qs = User.objects.filter(role='student', profile__department__iexact=target_val, is_active=True)
+        elif target_group == 'year':
+            try:
+                recipients_qs = User.objects.filter(role='student', profile__graduation_year=int(target_val), is_active=True)
+            except ValueError:
+                recipients_qs = User.objects.filter(role='student', is_active=True)
+        elif target_group == 'faculty':
+            recipients_qs = User.objects.filter(role__in=['faculty', 'department_admin'], is_active=True)
+        elif target_group == 'tpo_applicants':
+            drive_id = target_val
+            if drive_id:
+                recipients_qs = User.objects.filter(placement_applications__drive_id=drive_id, is_active=True)
+            else:
+                recipients_qs = User.objects.filter(placement_applications__isnull=False, is_active=True).distinct()
+        else:
+            recipients_qs = User.objects.filter(is_active=True)
+
+        count = 0
+        batch = []
+        for user in recipients_qs:
+            batch.append(
+                Notification(
+                    recipient=user,
+                    notification_type='system',
+                    title=f"[KPRIT Notice] {title}",
+                    message=message,
+                    link_url=request.data.get('link_url', ''),
+                )
+            )
+            count += 1
+            if len(batch) >= 500:
+                Notification.objects.bulk_create(batch)
+                batch = []
+
+        if batch:
+            Notification.objects.bulk_create(batch)
+
+        AuditLog.objects.create(
+            actor=request.user,
+            action="BROADCAST_NOTIFICATION",
+            resource_type="Notification",
+            resource_id=target_group,
+            details={"title": title, "recipients_count": count},
+            ip_address=request.META.get('REMOTE_ADDR', '')
+        )
+
+        return Response({
+            "message": f"Targeted notice broadcast to {count} recipients.",
+            "recipients_count": count
+        }, status=status.HTTP_201_CREATED)
+
 
 

@@ -34,6 +34,7 @@ import {
 import { NotificationItem } from "@/types/campus";
 import { CampusWebSocketClient } from "@/lib/websocket";
 import { Briefcase, MapPin } from "lucide-react";
+import { isInstitutionalAdmin, isTPOAdmin } from "@/lib/rbac";
 
 const NAV_ITEMS = [
   { label: "Events", href: "/events", icon: Calendar },
@@ -56,11 +57,16 @@ export function Navbar() {
 
   const isOrganizer =
     isAuthenticated &&
-    (user?.role === "club_leader" || user?.role === "admin" || user?.is_staff);
+    (user?.role?.toLowerCase() === "club_leader" ||
+     user?.role?.toLowerCase() === "admin" ||
+     user?.role?.toLowerCase() === "club_coordinator" ||
+     user?.is_staff);
 
-  const isAdmin =
-    isAuthenticated &&
-    (user?.role === "admin" || user?.is_staff);
+  const isInstitutionalAdminUser =
+    isAuthenticated && isInstitutionalAdmin(user);
+
+  const isTpoUser =
+    isAuthenticated && isTPOAdmin(user);
 
   // Load recent notifications for dropdown
   const loadRecentNotifications = useCallback(async () => {
@@ -245,13 +251,23 @@ export function Navbar() {
             );
           })}
 
-          {isAdmin && (
+          {isInstitutionalAdminUser && (
             <Link
-              href="/admin/announcements"
+              href="/admin/dashboard"
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all ml-1"
             >
               <ShieldAlert className="w-3.5 h-3.5" />
               <span>Admin Portal</span>
+            </Link>
+          )}
+
+          {isTpoUser && (
+            <Link
+              href="/tpo/dashboard"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all ml-1"
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>TPO Console</span>
             </Link>
           )}
         </nav>
@@ -495,7 +511,7 @@ export function Navbar() {
               );
             })}
 
-            {isAdmin && (
+            {isInstitutionalAdminUser && (
               <Link
                 href="/admin/announcements"
                 onClick={() => setMobileMenuOpen(false)}
@@ -564,6 +580,29 @@ export function Navbar() {
                     My Events
                   </Link>
                 </div>
+
+                {(isInstitutionalAdminUser || isTpoUser) && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {isInstitutionalAdminUser && (
+                      <Link
+                        href="/admin/dashboard"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="text-xs text-center py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/30 font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
+                      >
+                        Admin Portal
+                      </Link>
+                    )}
+                    {isTpoUser && (
+                      <Link
+                        href="/tpo/dashboard"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="text-xs text-center py-2 px-3 rounded-lg bg-blue-500/10 border border-blue-500/30 font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-500/20"
+                      >
+                        TPO Console
+                      </Link>
+                    )}
+                  </div>
+                )}
 
                 {isOrganizer && (
                   <div className="grid grid-cols-2 gap-2">

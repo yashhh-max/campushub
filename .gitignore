@@ -44,6 +44,8 @@ backend/.env.*
 *.dump
 *.sqlite3
 *.log
+backups/
+backend/backups/
 
 # IDE & OS
 .vscode/
@@ -65,3 +67,13 @@ backend/.coverage
 skills-lock.json
 neon.ts
 brag-output*/
+kprit-launch-film/
+videos_temp/
+test_synth.wav
+scripts/recorder/clips/
+scripts/recorder/output/
+scripts/recorder/cinematic/*.mp4
+scripts/recorder/cinematic/*.wav
+*.mp4
+*.webm
+*.wav

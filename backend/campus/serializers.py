@@ -3,7 +3,10 @@ from django.utils.text import slugify
 from .models import (
     Club, Event, EventRSVP, Announcement, ClubMembership, ClubPost,
     Notification, NotificationPreference, ClubMessage, EventQuestion,
-    EventQuestionUpvote, EventAnswer, EventTicket
+    EventQuestionUpvote, EventAnswer, EventTicket, Department,
+    Opportunity, OpportunityApplication, ApprovalRequest, AuditLog,
+    SystemSetting, Company, PlacementDrive, PlacementApplication,
+    PlacementInterview
 )
 
 
@@ -331,6 +334,8 @@ class EventSerializer(serializers.ModelSerializer):
             'image_gradient',
             'tags',
             'is_published',
+            'status',
+            'venue',
             'club',
             'club_id',
             'club_name',
@@ -503,6 +508,9 @@ class AnnouncementSerializer(serializers.ModelSerializer):
             'target_audience',
             'target_department',
             'target_graduation_year',
+            'target_section',
+            'target_role',
+            'status',
             'is_published',
             'scheduled_at',
             'expires_at',
@@ -526,6 +534,9 @@ class AnnouncementWriteSerializer(serializers.ModelSerializer):
             'target_audience',
             'target_department',
             'target_graduation_year',
+            'target_section',
+            'target_role',
+            'status',
             'is_published',
             'scheduled_at',
             'expires_at',
@@ -797,4 +808,338 @@ class EventTicketSerializer(serializers.ModelSerializer):
             'issued_at',
             'checked_in_at',
         ]
+
+
+# ==============================================================================
+# Institutional Department Serializers
+# ==============================================================================
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    students_count = serializers.SerializerMethodField()
+    faculty_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Department
+        fields = [
+            'id',
+            'name',
+            'code',
+            'description',
+            'hod_name',
+            'contact_email',
+            'is_active',
+            'students_count',
+            'faculty_count',
+            'created_at',
+            'updated_at',
+        ]
+
+    def get_students_count(self, obj):
+        from users.models import StudentProfile
+        return StudentProfile.objects.filter(department__iexact=obj.code).count()
+
+    def get_faculty_count(self, obj):
+        from users.models import FacultyProfile
+        return FacultyProfile.objects.filter(department__iexact=obj.code).count()
+
+
+# ==============================================================================
+# Institutional Opportunity Serializers
+# ==============================================================================
+
+class OpportunitySerializer(serializers.ModelSerializer):
+    applications_count = serializers.IntegerField(read_only=True)
+    has_applied = serializers.SerializerMethodField()
+    created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
+
+    class Meta:
+        model = Opportunity
+        fields = [
+            'id',
+            'title',
+            'organization',
+            'opportunity_type',
+            'description',
+            'location',
+            'stipend_or_prize',
+            'deadline',
+            'apply_url',
+            'eligibility_criteria',
+            'department',
+            'status',
+            'applications_count',
+            'has_applied',
+            'created_by_name',
+            'created_at',
+            'updated_at',
+        ]
+
+    def get_has_applied(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+        return obj.applications.filter(student=request.user).exists()
+
+
+class OpportunityApplicationSerializer(serializers.ModelSerializer):
+    opportunity_title = serializers.CharField(source='opportunity.title', read_only=True)
+    opportunity_org = serializers.CharField(source='opportunity.organization', read_only=True)
+    student_name = serializers.CharField(source='student.full_name', read_only=True)
+    student_email = serializers.EmailField(source='student.email', read_only=True)
+    student_roll = serializers.CharField(source='student.profile.student_id', read_only=True, default='')
+    student_dept = serializers.CharField(source='student.profile.department', read_only=True, default='')
+    student_cgpa = serializers.DecimalField(source='student.profile.cgpa', max_digits=4, decimal_places=2, read_only=True, default=None)
+
+    class Meta:
+        model = OpportunityApplication
+        fields = [
+            'id',
+            'opportunity',
+            'opportunity_title',
+            'opportunity_org',
+            'student',
+            'student_name',
+            'student_email',
+            'student_roll',
+            'student_dept',
+            'student_cgpa',
+            'resume_url',
+            'notes',
+            'status',
+            'applied_at',
+        ]
+        read_only_fields = ['id', 'student', 'applied_at']
+
+
+# ==============================================================================
+# Unified Institutional Approval Center Serializers
+# ==============================================================================
+
+class ApprovalRequestSerializer(serializers.ModelSerializer):
+    requested_by_name = serializers.CharField(source='requested_by.full_name', read_only=True)
+    requested_by_email = serializers.EmailField(source='requested_by.email', read_only=True)
+    reviewer_name = serializers.CharField(source='reviewer.full_name', read_only=True, default='')
+
+    class Meta:
+        model = ApprovalRequest
+        fields = [
+            'id',
+            'item_type',
+            'item_id',
+            'title',
+            'summary',
+            'requested_by',
+            'requested_by_name',
+            'requested_by_email',
+            'status',
+            'reviewer',
+            'reviewer_name',
+            'reviewer_notes',
+            'reviewed_at',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'requested_by', 'reviewer', 'reviewed_at', 'created_at', 'updated_at']
+
+
+# ==============================================================================
+# Institutional Audit Logs & System Settings Serializers
+# ==============================================================================
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    actor_name = serializers.CharField(source='actor.full_name', read_only=True, default='SYSTEM')
+    actor_email = serializers.CharField(source='actor.email', read_only=True, default='system')
+
+    class Meta:
+        model = AuditLog
+        fields = [
+            'id',
+            'actor',
+            'actor_name',
+            'actor_email',
+            'action',
+            'resource_type',
+            'resource_id',
+            'details',
+            'ip_address',
+            'user_agent',
+            'created_at',
+        ]
+
+
+class SystemSettingSerializer(serializers.ModelSerializer):
+    updated_by_name = serializers.CharField(source='updated_by.full_name', read_only=True, default='')
+
+    class Meta:
+        model = SystemSetting
+        fields = [
+            'id',
+            'key',
+            'value',
+            'description',
+            'updated_at',
+            'updated_by_name',
+        ]
+
+
+# ==============================================================================
+# Training & Placement Office (TPO) Serializers
+# ==============================================================================
+
+class CompanySerializer(serializers.ModelSerializer):
+    active_drives_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Company
+        fields = [
+            'id',
+            'name',
+            'industry',
+            'tier',
+            'website',
+            'contact_person',
+            'contact_email',
+            'contact_phone',
+            'location',
+            'logo_url',
+            'is_active',
+            'active_drives_count',
+            'created_at',
+            'updated_at',
+        ]
+
+
+class PlacementDriveSerializer(serializers.ModelSerializer):
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    company_tier = serializers.CharField(source='company.tier', read_only=True)
+    company_logo_url = serializers.CharField(source='company.logo_url', read_only=True)
+    applications_count = serializers.IntegerField(read_only=True)
+    selected_count = serializers.IntegerField(read_only=True)
+    is_eligible = serializers.SerializerMethodField()
+    ineligibility_reasons = serializers.SerializerMethodField()
+    has_applied = serializers.SerializerMethodField()
+    user_application_status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PlacementDrive
+        fields = [
+            'id',
+            'company',
+            'company_name',
+            'company_tier',
+            'company_logo_url',
+            'title',
+            'job_role',
+            'job_description',
+            'package_lpa',
+            'drive_date',
+            'application_deadline',
+            'eligibility_min_cgpa',
+            'eligibility_max_backlogs',
+            'eligibility_departments',
+            'eligibility_graduation_year',
+            'status',
+            'venue_or_link',
+            'rounds_description',
+            'applications_count',
+            'selected_count',
+            'is_eligible',
+            'ineligibility_reasons',
+            'has_applied',
+            'user_application_status',
+            'created_at',
+            'updated_at',
+        ]
+
+    def get_is_eligible(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+        eligible, _ = obj.is_student_eligible(request.user)
+        return eligible
+
+    def get_ineligibility_reasons(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return ["Authentication required."]
+        _, reasons = obj.is_student_eligible(request.user)
+        return reasons
+
+    def get_has_applied(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+        return obj.applications.filter(student=request.user).exists()
+
+    def get_user_application_status(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return None
+        app = obj.applications.filter(student=request.user).first()
+        return app.status if app else None
+
+
+class PlacementApplicationSerializer(serializers.ModelSerializer):
+    drive_title = serializers.CharField(source='drive.title', read_only=True)
+    company_name = serializers.CharField(source='drive.company.name', read_only=True)
+    package_lpa = serializers.DecimalField(source='drive.package_lpa', max_digits=5, decimal_places=2, read_only=True)
+    student_name = serializers.CharField(source='student.full_name', read_only=True)
+    student_email = serializers.EmailField(source='student.email', read_only=True)
+    student_roll = serializers.CharField(source='student.profile.student_id', read_only=True, default='')
+    student_dept = serializers.CharField(source='student.profile.department', read_only=True, default='')
+    student_cgpa = serializers.DecimalField(source='student.profile.cgpa', max_digits=4, decimal_places=2, read_only=True, default=None)
+    student_backlogs = serializers.IntegerField(source='student.profile.backlogs', read_only=True, default=0)
+
+    class Meta:
+        model = PlacementApplication
+        fields = [
+            'id',
+            'drive',
+            'drive_title',
+            'company_name',
+            'package_lpa',
+            'student',
+            'student_name',
+            'student_email',
+            'student_roll',
+            'student_dept',
+            'student_cgpa',
+            'student_backlogs',
+            'status',
+            'cgpa_at_application',
+            'resume_url',
+            'status_notes',
+            'applied_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'student', 'cgpa_at_application', 'applied_at', 'updated_at']
+
+
+class PlacementInterviewSerializer(serializers.ModelSerializer):
+    candidate_name = serializers.CharField(source='application.student.full_name', read_only=True)
+    candidate_email = serializers.EmailField(source='application.student.email', read_only=True)
+    candidate_roll = serializers.CharField(source='application.student.profile.student_id', read_only=True, default='')
+    company_name = serializers.CharField(source='application.drive.company.name', read_only=True)
+    drive_role = serializers.CharField(source='application.drive.job_role', read_only=True)
+
+    class Meta:
+        model = PlacementInterview
+        fields = [
+            'id',
+            'application',
+            'candidate_name',
+            'candidate_email',
+            'candidate_roll',
+            'company_name',
+            'drive_role',
+            'round_name',
+            'scheduled_at',
+            'mode',
+            'venue_or_link',
+            'interviewer_notes',
+            'status',
+            'created_at',
+            'updated_at',
+        ]
+
 

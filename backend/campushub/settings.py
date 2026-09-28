@@ -23,6 +23,14 @@ SECRET_KEY = os.getenv(
 
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
+if not DEBUG and ('insecure' in SECRET_KEY or len(SECRET_KEY) < 32):
+    import warnings
+    warnings.warn(
+        "SECURITY ALERT: Insecure or default SECRET_KEY detected in production mode! "
+        "Generate a cryptographically secure random key (min 50 chars) for KPRIT deployment.",
+        RuntimeWarning
+    )
+
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
@@ -262,7 +270,7 @@ EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'CampusHub Notifications <noreply@campushub.edu>')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'KPRIT CampusHub <noreply@kpritech.ac.in>')
 
 # Production Logging Configuration
 LOGGING = {

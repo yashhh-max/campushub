@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPRIT CampusHub Title Card</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    body {
+      background: radial-gradient(ellipse at 50% 20%, #1e293b 0%, #0a0f1d 60%, #030712 100%);
+      color: #f8fafc;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .grid-pattern {
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.8;
+      pointer-events: none;
+    }
+    .glow {
+      position: absolute;
+      width: 800px;
+      height: 450px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(30, 58, 138, 0.05) 50%, transparent 80%);
+      filter: blur(80px);
+      pointer-events: none;
+    }
+    .content-box {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      max-width: 1200px;
+      padding: 60px 80px;
+      animation: fadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 22px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #60a5fa;
+      margin-bottom: 28px;
+    }
+    .badge-gold {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      color: #fbbf24;
+    }
+    .badge-emerald {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: #34d399;
+    }
+    .badge-purple {
+      background: rgba(168, 85, 247, 0.12);
+      border: 1px solid rgba(192, 132, 252, 0.3);
+      color: #c084fc;
+    }
+    .title {
+      font-size: 72px;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 40%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+    }
+    .subtitle {
+      font-size: 32px;
+      font-weight: 400;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin-bottom: 32px;
+    }
+    .tagline {
+      font-size: 22px;
+      font-weight: 600;
+      color: #64748b;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .footer-brand {
+      position: absolute;
+      bottom: 40px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #64748b;
+      font-size: 15px;
+      letter-spacing: 0.05em;
+    }
+    .kprit-crest {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 18px;
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(20px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-pattern"></div>
+  <div class="glow"></div>
+
+  <div class="content-box" id="cardContent">
+    <!-- Populated dynamically via JS -->
+  </div>
+
+  <div class="footer-brand">
+    <div class="kprit-crest">K</div>
+    <div>KOMMURI PRATAP REDDY INSTITUTE OF TECHNOLOGY &bull; HYDERABAD</div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const card = params.get('card') || 'intro';
+    const container = document.getElementById('cardContent');
+
+    const cards = {
+      intro: {
+        badge: 'Institutional Enterprise Platform',
+        badgeClass: 'badge',
+        title: 'KPRIT CAMPUSHUB',
+        subtitle: 'Digital Campus Platform',
+        tagline: 'Kommuri Pratap Reddy Institute of Technology'
+      },
+      ch1: {
+        badge: 'Chapter 01',
+        badgeClass: 'badge badge-emerald',
+        title: '01 — Student Experience',
+        subtitle: 'Campus Life, Events, Clubs, Passes & Digital Notices',
+        tagline: 'Empowering Student Engagement Across Campus'
+      },
+      transition: {
+        badge: 'Unified Campus Ecosystem',
+        badgeClass: 'badge badge-purple',
+        title: 'One Connected Experience',
+        subtitle: 'From Student Activities to Institutional Governance',
+        tagline: '02 — Administration & TPO Operations'
+      },
+      ch2: {
+        badge: 'Chapter 02',
+        badgeClass: 'badge',
+        title: '02 — Administration Experience',
+        subtitle: 'Academic Directory, Approvals, Departments & Operations',
+        tagline: 'Institutional Governance for College Leadership'
+      },
+      ch3: {
+        badge: 'Chapter 03',
+        badgeClass: 'badge badge-gold',
+        title: 'KPRIT Placement & Training',
+        subtitle: 'Training & Placement Operations (TPO Console)',
+        tagline: 'Automated Eligibility, Drives, Corporate Relations & Analytics'
+      },
+      ch4: {
+        badge: 'Security & Governance',
+        badgeClass: 'badge badge-purple',
+        title: 'Role-Based Access Control',
+        subtitle: 'Rigorous Policy Boundaries & Student Protection',
+        tagline: 'Automated Authorization Across Campus Personas'
+      },
+      outro: {
+        badge: 'The Complete Platform',
+        badgeClass: 'badge badge-emerald',
+        title: 'KPRIT CampusHub',
+        subtitle: 'One platform connecting students, faculty, administration and placement operations.',
+        tagline: 'Kommuri Pratap Reddy Institute of Technology'
+      }
+    };
+
+    const data = cards[card] || cards.intro;
+    container.innerHTML = `
+      <div class="${data.badgeClass}">${data.badge}</div>
+      <h1 class="title">${data.title}</h1>
+      <p class="subtitle">${data.subtitle}</p>
+      <div class="tagline">${data.tagline}</div>
+    `;
+  </script>
+</body>
+</html>

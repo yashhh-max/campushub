@@ -19,6 +19,7 @@ import {
 
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
+import { AdminShell } from "@/components/admin/AdminShell";
 import {
   fetchAdminAnnouncements,
   createAnnouncement,
@@ -66,17 +67,6 @@ export default function AdminAnnouncementsPage() {
   const [formData, setFormData] = useState<AnnouncementCreatePayload>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [modalError, setModalError] = useState<string | null>(null);
-
-  // Guard: Admin role only
-  useEffect(() => {
-    if (!authLoading) {
-      if (!isAuthenticated) {
-        router.push("/login?redirect=/admin/announcements");
-      } else if (user?.role !== "admin" && !user?.is_staff) {
-        router.push("/dashboard");
-      }
-    }
-  }, [authLoading, isAuthenticated, user, router]);
 
   const refreshAnnouncements = useCallback(() => {
     if (!token) return;
@@ -216,21 +206,8 @@ export default function AdminAnnouncementsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center justify-between">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Return to Dashboard</span>
-          </Link>
-          <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 font-bold">
-            Administrator Mode
-          </span>
-        </div>
+    <AdminShell requiredPermission="ANNOUNCEMENT_CREATE">
+      <div className="space-y-6">
 
         {/* Page Header */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -714,6 +691,6 @@ export default function AdminAnnouncementsPage() {
           </div>
         )}
       </div>
-    </div>
+    </AdminShell>
   );
 }

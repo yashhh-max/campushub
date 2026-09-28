@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPRIT CampusHub — Cinematic Showcase Film</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    body {
+      background: #030712;
+      color: #f8fafc;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Ambient Background Aura */
+    .ambient-glow {
+      position: absolute;
+      width: 1200px;
+      height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(30, 58, 138, 0.25) 0%, rgba(14, 165, 233, 0.08) 45%, transparent 75%);
+      filter: blur(100px);
+      pointer-events: none;
+      transition: all 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1;
+    }
+    .grid-lines {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    canvas#particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    /* Cinematic Top HUD Bar */
+    .top-hud {
+      position: absolute;
+      top: 28px;
+      left: 60px;
+      right: 60px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+    }
+    .hud-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .crest-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1e3a8a, #0284c7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 18px;
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(2, 132, 199, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hud-title-box {
+      display: flex;
+      flex-direction: column;
+    }
+    .hud-name {
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: 0.04em;
+      color: #ffffff;
+    }
+    .hud-sub {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+
+    .chapter-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 24px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+    .chapter-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 10px #38bdf8;
+      transition: background 0.6s, box-shadow 0.6s;
+    }
+    .chapter-text {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #e2e8f0;
+    }
+
+    /* Waveform visualizer */
+    .waveform {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 20px;
+    }
+    .wave-bar {
+      width: 3px;
+      background: #38bdf8;
+      border-radius: 2px;
+      animation: pulse 1s infinite alternate;
+    }
+    @keyframes pulse {
+      0% { height: 4px; opacity: 0.4; }
+      100% { height: 18px; opacity: 0.9; }
+    }
+
+    /* 3D Hardware Display Stage */
+    .stage-3d {
+      position: relative;
+      width: 1540px;
+      height: 860px;
+      perspective: 1600px;
+      transform-style: preserve-3d;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hardware-chassis {
+      position: relative;
+      width: 1400px;
+      height: 800px;
+      border-radius: 36px;
+      background: linear-gradient(145deg, #1e293b, #090d16);
+      padding: 14px;
+      box-shadow: 
+        0 40px 100px -20px rgba(0, 0, 0, 0.85),
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        inset 0 1px 2px rgba(255, 255, 255, 0.25);
+      transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 1.2s ease;
+      transform-origin: center center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .screen-bezel {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
+      background: #000;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+
+    .screen-content {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.8s ease, transform 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: scale(1.0);
+    }
+    .screen-content.active {
+      opacity: 1;
+    }
+
+    /* Screen Glint / Specular Light Streak */
+    .screen-glint {
+      position: absolute;
+      top: -100%;
+      left: -100%;
+      width: 300%;
+      height: 300%;
+      background: linear-gradient(
+        135deg,
+        transparent 45%,
+        rgba(255, 255, 255, 0.06) 50%,
+        transparent 55%
+      );
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    /* HUD Floating Callout Card (Double-Bezel) */
+    .hud-callout {
+      position: absolute;
+      right: -80px;
+      bottom: 60px;
+      z-index: 25;
+      padding: 6px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+      transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateZ(40px);
+    }
+    .hud-callout-inner {
+      padding: 18px 26px;
+      border-radius: 18px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-width: 440px;
+    }
+    .hud-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hud-tag-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+    .hud-heading {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+    }
+    .hud-desc {
+      font-size: 13px;
+      font-weight: 400;
+      color: #94a3b8;
+      line-height: 1.45;
+    }
+
+    /* Dramatic Title Overlay */
+    .title-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(3, 7, 18, 0.92) 0%, #030712 90%);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .title-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .title-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 24px;
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #38bdf8;
+    }
+    .title-badge.gold {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+    }
+    .title-badge.crimson {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.35);
+      color: #f87171;
+    }
+    .title-h1 {
+      font-size: 68px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 18px;
+    }
+    .title-sub {
+      font-size: 26px;
+      font-weight: 400;
+      color: #94a3b8;
+      max-width: 860px;
+      line-height: 1.45;
+      margin-bottom: 28px;
+    }
+    .title-tagline {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+
+    /* Bottom Timeline Bar */
+    .timeline-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 60px;
+      right: 60px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 9999px;
+      overflow: hidden;
+      z-index: 100;
+    }
+    .timeline-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #f59e0b);
+      transition: width 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-glow" id="ambientGlow"></div>
+  <div class="grid-lines"></div>
+  <canvas id="particles"></canvas>
+
+  <!-- Top HUD -->
+  <div class="top-hud">
+    <div class="hud-brand">
+      <div class="crest-icon">K</div>
+      <div class="hud-title-box">
+        <div class="hud-name">KPRIT CampusHub</div>
+        <div class="hud-sub">Institutional Digital Platform</div>
+      </div>
+    </div>
+
+    <div class="chapter-pill">
+      <div class="chapter-dot" id="chapterDot"></div>
+      <div class="chapter-text" id="chapterText">00 / INTRO PROLOGUE</div>
+    </div>
+
+    <div class="waveform">
+      <div class="wave-bar" style="animation-delay: 0.1s;"></div>
+      <div class="wave-bar" style="animation-delay: 0.3s;"></div>
+      <div class="wave-bar" style="animation-delay: 0.2s;"></div>
+      <div class="wave-bar" style="animation-delay: 0.4s;"></div>
+      <div class="wave-bar" style="animation-delay: 0.15s;"></div>
+      <div class="wave-bar" style="animation-delay: 0.35s;"></div>
+    </div>
+  </div>
+
+  <!-- 3D Stage -->
+  <div class="stage-3d">
+    <div class="hardware-chassis" id="chassis">
+      <div class="screen-bezel">
+        <img class="screen-content active" id="screenImg" src="assets/student_dashboard.jpg" alt="Screen">
+        <div class="screen-glint"></div>
+      </div>
+
+      <!-- Double-Bezel HUD Callout -->
+      <div class="hud-callout" id="calloutBox">
+        <div class="hud-callout-inner">
+          <div class="hud-tag" id="calloutTag">
+            <span class="hud-tag-dot" id="calloutDot"></span>
+            <span id="calloutTagText">CAMPUS TELEMETRY</span>
+          </div>
+          <div class="hud-heading" id="calloutHeading">Personalized Student Experience</div>
+          <div class="hud-desc" id="calloutDesc">Centralized academic updates, active event registrations, and campus alerts.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Title Card Overlay -->
+  <div class="title-overlay active" id="titleOverlay">
+    <div class="title-badge" id="titleBadge">Institutional Enterprise Platform</div>
+    <h1 class="title-h1" id="titleH1">KPRIT CAMPUSHUB</h1>
+    <p class="title-sub" id="titleSub">The Unified Institutional Digital Campus Platform</p>
+    <div class="title-tagline" id="titleTagline">Kommuri Pratap Reddy Institute of Technology &bull; Hyderabad</div>
+  </div>
+
+  <!-- Bottom Timeline -->
+  <div class="timeline-bar">
+    <div class="timeline-fill" id="timelineFill"></div>
+  </div>
+
+  <script>
+    // Particle Canvas Animation
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1920;
+    canvas.height = 1080;
+    const particles = [];
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * 1920,
+        y: Math.random() * 1080,
+        r: Math.random() * 1.8 + 0.6,
+        dx: (Math.random() - 0.5) * 0.4,
+        dy: (Math.random() - 0.5) * 0.4,
+        alpha: Math.random() * 0.5 + 0.2
+      });
+    }
+    function drawParticles() {
+      ctx.clearRect(0, 0, 1920, 1080);
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(148, 163, 184, ${p.alpha})`;
+        ctx.fill();
+        p.x += p.dx;
+        p.y += p.dy;
+        if (p.x < 0) p.x = 1920;
+        if (p.x > 1920) p.x = 0;
+        if (p.y < 0) p.y = 1080;
+        if (p.y > 1080) p.y = 0;
+      }
+      requestAnimationFrame(drawParticles);
+    }
+    drawParticles();
+
+    // Elements
+    const chassis = document.getElementById('chassis');
+    const screenImg = document.getElementById('screenImg');
+    const calloutBox = document.getElementById('calloutBox');
+    const calloutTagText = document.getElementById('calloutTagText');
+    const calloutHeading = document.getElementById('calloutHeading');
+    const calloutDesc = document.getElementById('calloutDesc');
+    const ambientGlow = document.getElementById('ambientGlow');
+    const chapterText = document.getElementById('chapterText');
+    const chapterDot = document.getElementById('chapterDot');
+    const titleOverlay = document.getElementById('titleOverlay');
+    const titleBadge = document.getElementById('titleBadge');
+    const titleH1 = document.getElementById('titleH1');
+    const titleSub = document.getElementById('titleSub');
+    const titleTagline = document.getElementById('titleTagline');
+    const timelineFill = document.getElementById('timelineFill');
+
+    // Cinematic Storyboard (210s Total Runtime)
+    const storyboard = [
+      // 0. Intro Prologue (0 - 8s)
+      {
+        t: 0,
+        action: () => {
+          titleOverlay.classList.add('active');
+          titleBadge.className = 'title-badge';
+          titleBadge.textContent = 'Institutional Enterprise Platform';
+          titleH1.textContent = 'KPRIT CAMPUSHUB';
+          titleSub.textContent = 'The Unified Institutional Digital Campus Platform';
+          titleTagline.textContent = 'Kommuri Pratap Reddy Institute of Technology • Hyderabad';
+          chapterText.textContent = '00 / INTRO PROLOGUE';
+          chapterDot.style.background = '#38bdf8';
+          chassis.style.transform = 'rotateX(15deg) rotateY(-12deg) scale(0.85)';
+        }
+      },
+      // 1. Chapter 1 Title (8 - 14s)
+      {
+        t: 8,
+        action: () => {
+          titleOverlay.classList.add('active');
+          titleBadge.className = 'title-badge';
+          titleBadge.textContent = 'Chapter 01';
+          titleH1.textContent = '01 — Student Experience';
+          titleSub.textContent = 'Connecting Student Life, Activities, Clubs & Verified Passes';
+          titleTagline.textContent = 'KPRIT Student Portal & Campus Engagement';
+          chapterText.textContent = '01 / STUDENT EXPERIENCE';
+          chapterDot.style.background = '#34d399';
+        }
+      },
+      // 2. Student Dashboard Zoom (14 - 26s)
+      {
+        t: 14,
+        action: () => {
+          titleOverlay.classList.remove('active');
+          screenImg.src = 'assets/student_dashboard.jpg';
+          chassis.style.transform = 'rotateX(8deg) rotateY(-6deg) scale(1.05)';
+          screenImg.style.transform = 'scale(1.15) translate(-5%, -4%)';
+          ambientGlow.style.background = 'radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(2, 132, 199, 0.08) 50%, transparent 75%)';
+          calloutBox.style.opacity = '1';
+          calloutTagText.textContent = 'STUDENT TELEMETRY';
+          calloutHeading.textContent = 'Personalized Dashboard';
+          calloutDesc.textContent = 'Live attendance tracking, verified registrations, and campus alerts for K. Sai Varun (22K81A0501).';
+        }
+      },
+      // 3. Digital QR Pass (26 - 40s)
+      {
+        t: 26,
+        action: () => {
+          screenImg.src = 'assets/student_pass.jpg';
+          chassis.style.transform = 'rotateX(4deg) rotateY(8deg) scale(1.18)';
+          screenImg.style.transform = 'scale(1.22) translate(4%, -6%)';
+          calloutTagText.textContent = 'SECURE ADMISSION';
+          calloutHeading.textContent = 'Verified QR Digital Pass';
+          calloutDesc.textContent = 'Tamper-proof event credential with dynamic student verification and instant door check-in.';
+        }
+      },
+      // 4. Clubs & Societies (40 - 54s)
+      {
+        t: 40,
+        action: () => {
+          screenImg.src = 'assets/student_clubs.jpg';
+          chassis.style.transform = 'rotateX(6deg) rotateY(-4deg) scale(1.02)';
+          screenImg.style.transform = 'scale(1.08) translate(0%, 0%)';
+          calloutTagText.textContent = 'CAMPUS SOCIETIES';
+          calloutHeading.textContent = 'Technical & Cultural Chapters';
+          calloutDesc.textContent = 'ACM Student Chapter, Robotics Lab, and collegiate societies with faculty mentors.';
+        }
+      },
+      // 5. Chapter 2 Title: Administration (54 - 60s)
+      {
+        t: 54,
+        action: () => {
+          titleOverlay.classList.add('active');
+          titleBadge.className = 'title-badge';
+          titleBadge.textContent = 'Chapter 02';
+          titleH1.textContent = '02 — Administration Experience';
+          titleSub.textContent = 'Institutional Command Center, Academic Governance & Approvals';
+          titleTagline.textContent = 'College Leadership & Department Administration';
+          chapterText.textContent = '02 / ADMINISTRATION';
+          chapterDot.style.background = '#818cf8';
+        }
+      },
+      // 6. Admin Institutional Dashboard (60 - 74s)
+      {
+        t: 60,
+        action: () => {
+          titleOverlay.classList.remove('active');
+          screenImg.src = 'assets/admin_dashboard.jpg';
+          chassis.style.transform = 'rotateX(10deg) rotateY(-8deg) scale(1.08)';
+          screenImg.style.transform = 'scale(1.18) translate(-6%, -5%)';
+          ambientGlow.style.background = 'radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(30, 58, 138, 0.12) 50%, transparent 75%)';
+          calloutTagText.textContent = 'INSTITUTIONAL METRICS';
+          calloutHeading.textContent = 'Campus-Wide Command Center';
+          calloutDesc.textContent = 'Real-time database metrics: 10 students, 3 faculty, 9 departments, and real-time audit logging.';
+        }
+      },
+      // 7. Student Registry & CGPA Tracking (74 - 88s)
+      {
+        t: 74,
+        action: () => {
+          screenImg.src = 'assets/admin_students.jpg';
+          chassis.style.transform = 'rotateX(6deg) rotateY(6deg) scale(1.12)';
+          screenImg.style.transform = 'scale(1.2) translate(4%, -4%)';
+          calloutTagText.textContent = 'ACADEMIC REGISTRY';
+          calloutHeading.textContent = 'Student Master Registry';
+          calloutDesc.textContent = 'Roll number indexing, department badges (CSE, ECE, AI&DS), and live CGPA tracking.';
+        }
+      },
+      // 8. 9 Academic Departments & Approvals (88 - 104s)
+      {
+        t: 88,
+        action: () => {
+          screenImg.src = 'assets/admin_depts.jpg';
+          chassis.style.transform = 'rotateX(8deg) rotateY(-4deg) scale(1.05)';
+          screenImg.style.transform = 'scale(1.12) translate(-2%, 0%)';
+          calloutTagText.textContent = 'GOVERNANCE';
+          calloutHeading.textContent = '9 Academic Departments & HODs';
+          calloutDesc.textContent = 'Integrated branch directories, faculty chairs, and multi-tier institutional approval workflows.';
+        }
+      },
+      // 9. Chapter 3 Title: TPO (104 - 110s)
+      {
+        t: 104,
+        action: () => {
+          titleOverlay.classList.add('active');
+          titleBadge.className = 'title-badge gold';
+          titleBadge.textContent = 'Chapter 03';
+          titleH1.textContent = 'KPRIT Placement & Training';
+          titleSub.textContent = 'TPO Operations Console, Corporate Recruiting & Automated Eligibility';
+          titleTagline.textContent = 'KPRIT Career Development & Corporate Relations';
+          chapterText.textContent = '03 / TPO PLACEMENTS';
+          chapterDot.style.background = '#fbbf24';
+        }
+      },
+      // 10. TPO Dashboard & Companies (110 - 124s)
+      {
+        t: 110,
+        action: () => {
+          titleOverlay.classList.remove('active');
+          screenImg.src = 'assets/tpo_companies.jpg';
+          chassis.style.transform = 'rotateX(8deg) rotateY(-6deg) scale(1.1)';
+          screenImg.style.transform = 'scale(1.16) translate(-4%, -4%)';
+          ambientGlow.style.background = 'radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, rgba(180, 83, 9, 0.1) 50%, transparent 75%)';
+          calloutTagText.textContent = 'CORPORATE PARTNERS';
+          calloutHeading.textContent = 'Tiered Hiring Organizations';
+          calloutDesc.textContent = 'Darwinbox (Super Dream), Infosys (Dream), Cognizant (Tier 1), TCS, and Virtusa partnerships.';
+        }
+      },
+      // 11. Recruitment Drives & Automated Eligibility (124 - 140s)
+      {
+        t: 124,
+        action: () => {
+          screenImg.src = 'assets/tpo_drives.jpg';
+          chassis.style.transform = 'rotateX(5deg) rotateY(8deg) scale(1.22)';
+          screenImg.style.transform = 'scale(1.28) translate(6%, -8%)';
+          calloutTagText.textContent = 'AUTOMATED ELIGIBILITY';
+          calloutHeading.textContent = 'Algorithmic Qualification Rules';
+          calloutDesc.textContent = 'Strict CGPA cutoffs (e.g. 7.50+), zero active backlogs, and target branch array enforcement.';
+        }
+      },
+      // 12. Student Placement Master Registry (140 - 154s)
+      {
+        t: 140,
+        action: () => {
+          screenImg.src = 'assets/tpo_students.jpg';
+          chassis.style.transform = 'rotateX(6deg) rotateY(-4deg) scale(1.08)';
+          screenImg.style.transform = 'scale(1.15) translate(-2%, 0%)';
+          calloutTagText.textContent = 'PLACEMENT MASTER';
+          calloutHeading.textContent = 'Candidate Readiness Tracking';
+          calloutDesc.textContent = 'Resume access, offer letters, verified test scores, and real-time student placement statuses.';
+        }
+      },
+      // 13. Chapter 4 Title: RBAC (154 - 160s)
+      {
+        t: 154,
+        action: () => {
+          titleOverlay.classList.add('active');
+          titleBadge.className = 'title-badge crimson';
+          titleBadge.textContent = 'Security & Governance';
+          titleH1.textContent = 'Role-Based Access Control';
+          titleSub.textContent = 'Automated Policy Enforcement, Zero-Trust Boundaries & Student Safeguards';
+          titleTagline.textContent = 'Institutional Security Architecture';
+          chapterText.textContent = '04 / RBAC SECURITY';
+          chapterDot.style.background = '#f87171';
+        }
+      },
+      // 14. Access Restricted Boundary Modal (160 - 174s)
+      {
+        t: 160,
+        action: () => {
+          titleOverlay.classList.remove('active');
+          screenImg.src = 'assets/rbac_restricted.jpg';
+          chassis.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1.28)';
+          screenImg.style.transform = 'scale(1.0) translate(0%, 0%)';
+          ambientGlow.style.background = 'radial-gradient(circle, rgba(239, 68, 68, 0.28) 0%, rgba(153, 27, 27, 0.12) 50%, transparent 75%)';
+          calloutTagText.textContent = 'SECURITY ENFORCEMENT';
+          calloutHeading.textContent = 'Access Restricted Dialog';
+          calloutDesc.textContent = 'Student account blocked from administrative areas. Instant containment and safe redirection.';
+        }
+      },
+      // 15. Authorized Admin Escalation (174 - 184s)
+      {
+        t: 174,
+        action: () => {
+          screenImg.src = 'assets/rbac_admin_granted.jpg';
+          chassis.style.transform = 'rotateX(6deg) rotateY(-6deg) scale(1.1)';
+          screenImg.style.transform = 'scale(1.14) translate(-4%, -4%)';
+          ambientGlow.style.background = 'radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, rgba(30, 58, 138, 0.1) 50%, transparent 75%)';
+          calloutTagText.textContent = 'ADMIN PRIVILEGE';
+          calloutHeading.textContent = 'Authorized College Admin';
+          calloutDesc.textContent = 'Principal credentials verified. Central administration console unlocked.';
+        }
+      },
+      // 16. Authorized TPO Escalation (184 - 194s)
+      {
+        t: 184,
+        action: () => {
+          screenImg.src = 'assets/rbac_tpo_granted.jpg';
+          chassis.style.transform = 'rotateX(6deg) rotateY(6deg) scale(1.1)';
+          screenImg.style.transform = 'scale(1.14) translate(4%, -4%)';
+          ambientGlow.style.background = 'radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, rgba(180, 83, 9, 0.1) 50%, transparent 75%)';
+          calloutTagText.textContent = 'TPO PRIVILEGE';
+          calloutHeading.textContent = 'Authorized Placement Cell';
+          calloutDesc.textContent = 'TPO Officer credentials verified. Placement operations console unlocked.';
+        }
+      },
+      // 17. Outro & Finale (194 - 210s)
+      {
+        t: 194,
+        action: () => {
+          titleOverlay.classList.add('active');
+          titleBadge.className = 'title-badge';
+          titleBadge.textContent = 'The Complete Digital Campus';
+          titleH1.textContent = 'KPRIT CampusHub';
+          titleSub.textContent = 'One platform connecting students, faculty, administration and placement operations.';
+          titleTagline = 'Kommuri Pratap Reddy Institute of Technology • Hyderabad';
+          chapterText.textContent = '05 / INSTITUTIONAL FINALE';
+          chapterDot.style.background = '#38bdf8';
+          chassis.style.transform = 'rotateX(12deg) rotateY(0deg) scale(0.9)';
+        }
+      }
+    ];
+
+    // Master Timeline Driver
+    const totalDuration = 210;
+    let currentStep = 0;
+    const startTime = performance.now();
+
+    function tick() {
+      const elapsed = (performance.now() - startTime) / 1000;
+      const progress = Math.min((elapsed / totalDuration) * 100, 100);
+      timelineFill.style.width = progress + '%';
+
+      while (currentStep < storyboard.length && elapsed >= storyboard[currentStep].t) {
+        storyboard[currentStep].action();
+        currentStep++;
+      }
+
+      if (elapsed < totalDuration) {
+        requestAnimationFrame(tick);
+      }
+    }
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
