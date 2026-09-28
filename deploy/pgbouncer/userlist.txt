@@ -1,0 +1,1 @@
+"campushub_user" "campushub_secret"

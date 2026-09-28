@@ -1,0 +1,13 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,Scenario A: Student Login,CatchResponseError('Login failed: status 0'),1728,2026-09-28T09:14:39Z,2026-09-28T09:14:53Z
+GET,Scenario K: Health Ping Probe,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",39,2026-09-28T09:14:41Z,2026-09-28T09:14:53Z
+GET,Scenario B: Dashboard Announcements,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",9,2026-09-28T09:14:46Z,2026-09-28T09:14:50Z
+GET,Scenario H: Clubs Directory,CatchResponseError('Clubs directory failed: 0'),67,2026-09-28T09:14:41Z,2026-09-28T09:14:53Z
+POST,Scenario A: Student Login,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",8,2026-09-28T09:14:50Z,2026-09-28T09:14:53Z
+GET,Scenario B: Dashboard Upcoming Events,CatchResponseError('Dashboard events failed: 0'),140,2026-09-28T09:14:41Z,2026-09-28T09:14:53Z
+GET,Scenario F: Campus Announcements Feed,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",85,2026-09-28T09:14:41Z,2026-09-28T09:14:53Z
+GET,Scenario B: Notification Badge Count,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",1,2026-09-28T09:14:49Z,2026-09-28T09:14:49Z
+GET,Scenario I: Opportunities Feed,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",4,2026-09-28T09:14:46Z,2026-09-28T09:14:49Z
+GET,Scenario G: Notifications List,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",20,2026-09-28T09:14:43Z,2026-09-28T09:14:53Z
+GET,Scenario C: Browse Events List,CatchResponseError('Event list failed: 0'),110,2026-09-28T09:14:41Z,2026-09-28T09:14:53Z
+GET,Scenario I: Placement Drives List,CatchResponseError('Placement drives failed: 0'),64,2026-09-28T09:14:41Z,2026-09-28T09:14:53Z

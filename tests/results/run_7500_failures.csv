@@ -1,0 +1,10 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,Scenario A: Student Login,CatchResponseError('Login failed: status 0'),1426,2026-09-28T09:15:01Z,2026-09-28T09:15:17Z
+GET,Scenario K: Health Ping Probe,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",11,2026-09-28T09:15:15Z,2026-09-28T09:15:17Z
+GET,Scenario H: Clubs Directory,CatchResponseError('Clubs directory failed: 0'),23,2026-09-28T09:15:15Z,2026-09-28T09:15:17Z
+POST,Scenario A: Student Login,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",5,2026-09-28T09:15:15Z,2026-09-28T09:15:17Z
+GET,Scenario B: Dashboard Upcoming Events,CatchResponseError('Dashboard events failed: 0'),57,2026-09-28T09:15:12Z,2026-09-28T09:15:17Z
+GET,Scenario F: Campus Announcements Feed,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",35,2026-09-28T09:15:15Z,2026-09-28T09:15:17Z
+GET,Scenario G: Notifications List,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",19,2026-09-28T09:15:15Z,2026-09-28T09:15:17Z
+GET,Scenario C: Browse Events List,CatchResponseError('Event list failed: 0'),52,2026-09-28T09:15:12Z,2026-09-28T09:15:17Z
+GET,Scenario I: Placement Drives List,CatchResponseError('Placement drives failed: 0'),31,2026-09-28T09:15:15Z,2026-09-28T09:15:17Z

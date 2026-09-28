@@ -125,6 +125,47 @@ else:
         },
     }
 
+# High-Concurrency Distributed Caching (Redis 7+)
+# Provides sub-millisecond in-memory caching across all horizontally scaled app instances
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'IGNORE_EXCEPTIONS': True,
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+                'CONNECTION_POOL_KWARGS': {'max_connections': 100, 'protocol': 2},
+            },
+            'KEY_PREFIX': 'campushub',
+            'TIMEOUT': 300,
+        }
+    }
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'campushub-local-cache',
+            'TIMEOUT': 300,
+        }
+    }
+
+# Celery 5+ Distributed Task Queue Configuration
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', REDIS_URL or 'redis://localhost:6379/1')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', REDIS_URL or 'redis://localhost:6379/1')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Kolkata'
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60
+CELERY_TASK_ALWAYS_EAGER = os.getenv('CELERY_TASK_ALWAYS_EAGER', 'False').lower() in ('true', '1', 'yes')
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
 # Database Configuration
 # PostgreSQL is supported via DATABASE_URL or POSTGRES_* environment variables.
 # Falls back to SQLite for seamless isolated local development when unconfigured.

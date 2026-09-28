@@ -1,0 +1,13 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,Scenario A: Student Login,CatchResponseError('Login failed: status 0'),1816,2026-09-28T09:14:17Z,2026-09-28T09:14:24Z
+GET,Scenario K: Health Ping Probe,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",128,2026-09-28T09:14:22Z,2026-09-28T09:14:31Z
+GET,Scenario B: Dashboard Announcements,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",51,2026-09-28T09:14:23Z,2026-09-28T09:14:31Z
+GET,Scenario H: Clubs Directory,CatchResponseError('Clubs directory failed: 0'),272,2026-09-28T09:14:21Z,2026-09-28T09:14:31Z
+POST,Scenario A: Student Login,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",50,2026-09-28T09:14:22Z,2026-09-28T09:14:31Z
+GET,Scenario B: Dashboard Upcoming Events,CatchResponseError('Dashboard events failed: 0'),488,2026-09-28T09:14:21Z,2026-09-28T09:14:31Z
+GET,Scenario F: Campus Announcements Feed,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",365,2026-09-28T09:14:21Z,2026-09-28T09:14:31Z
+GET,Scenario I: Opportunities Feed,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",20,2026-09-28T09:14:26Z,2026-09-28T09:14:31Z
+GET,Scenario I: Placement Drives List,CatchResponseError('Placement drives failed: 401'),3,2026-09-28T09:14:26Z,2026-09-28T09:14:27Z
+GET,Scenario G: Notifications List,"ConnectionRefusedError(10061, '[WinError 10061] No connection could be made because the target machine actively refused it.')",62,2026-09-28T09:14:24Z,2026-09-28T09:14:26Z
+GET,Scenario C: Browse Events List,CatchResponseError('Event list failed: 0'),379,2026-09-28T09:14:21Z,2026-09-28T09:14:31Z
+GET,Scenario I: Placement Drives List,CatchResponseError('Placement drives failed: 0'),214,2026-09-28T09:14:22Z,2026-09-28T09:14:31Z

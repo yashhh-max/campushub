@@ -170,14 +170,26 @@ def send_notification(
             </div>
             """
 
-            send_mail(
-                subject=subject,
-                message=email_body_text,
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@campushub.edu'),
-                recipient_list=[recipient.email],
-                html_message=html_body,
-                fail_silently=True,
-            )
+            # Offload email dispatch to asynchronous worker to prevent blocking HTTP requests
+            try:
+                from .tasks import send_email_async
+                send_email_async.delay(
+                    subject=subject,
+                    message=email_body_text,
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@campushub.edu'),
+                    recipient_list=[recipient.email],
+                    html_message=html_body,
+                )
+            except Exception:
+                # Synchronous fallback if Celery/broker is unconfigured
+                send_mail(
+                    subject=subject,
+                    message=email_body_text,
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@campushub.edu'),
+                    recipient_list=[recipient.email],
+                    html_message=html_body,
+                    fail_silently=True,
+                )
         except Exception as e:
             logger.warning(f"Failed to dispatch email for notification {notification.id}: {e}")
 

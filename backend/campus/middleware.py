@@ -11,6 +11,8 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
+from django.core.cache import cache
+
 User = get_user_model()
 
 
@@ -18,6 +20,7 @@ User = get_user_model()
 def get_user_from_token(token_string):
     """
     Validates JWT access token string and returns User instance or AnonymousUser.
+    Utilizes Redis cache (300s TTL) to prevent PostgreSQL connection storms during high-concurrency reconnects.
     """
     if not token_string:
         return AnonymousUser()
@@ -26,7 +29,15 @@ def get_user_from_token(token_string):
         user_id = access_token.get('user_id')
         if not user_id:
             return AnonymousUser()
-        return User.objects.get(id=user_id, is_active=True)
+
+        cache_key = f"ws_user_auth_{user_id}"
+        cached_user = cache.get(cache_key)
+        if cached_user is not None and getattr(cached_user, 'is_active', False):
+            return cached_user
+
+        user = User.objects.get(id=user_id, is_active=True)
+        cache.set(cache_key, user, timeout=300)
+        return user
     except (InvalidToken, TokenError, User.DoesNotExist):
         return AnonymousUser()
     except Exception:

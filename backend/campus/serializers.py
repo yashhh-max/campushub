@@ -30,7 +30,7 @@ class ClubSummarySerializer(serializers.ModelSerializer):
 class ClubSerializer(serializers.ModelSerializer):
     leader_name = serializers.CharField(source='leader.full_name', read_only=True)
     leader_email = serializers.EmailField(source='leader.email', read_only=True)
-    events_count = serializers.IntegerField(source='events.count', read_only=True)
+    events_count = serializers.SerializerMethodField()
     member_count = serializers.IntegerField(read_only=True)
     pending_applications_count = serializers.SerializerMethodField()
     user_membership_status = serializers.SerializerMethodField()
@@ -64,6 +64,11 @@ class ClubSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
 
+    def get_events_count(self, obj):
+        if hasattr(obj, 'annotated_events_count'):
+            return obj.annotated_events_count
+        return obj.events.count()
+
     def get_pending_applications_count(self, obj):
         request = self.context.get('request')
         if not request or not request.user or not request.user.is_authenticated:
@@ -72,9 +77,16 @@ class ClubSerializer(serializers.ModelSerializer):
         if (
             user.role == 'admin' or
             user.is_staff or
-            obj.leader == user or
-            obj.memberships.filter(user=user, role__in=['president', 'vice_president'], status='approved').exists()
+            obj.leader == user
         ):
+            return obj.pending_applications_count
+        user_memberships = self.context.get('user_memberships')
+        if user_memberships is not None:
+            membership = user_memberships.get(obj.id)
+            if membership and membership.role in ['president', 'vice_president'] and membership.status == 'approved':
+                return obj.pending_applications_count
+            return 0
+        if obj.memberships.filter(user=user, role__in=['president', 'vice_president'], status='approved').exists():
             return obj.pending_applications_count
         return 0
 
@@ -82,6 +94,10 @@ class ClubSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user or not request.user.is_authenticated:
             return None
+        user_memberships = self.context.get('user_memberships')
+        if user_memberships is not None:
+            membership = user_memberships.get(obj.id)
+            return membership.status if membership else None
         membership = obj.memberships.filter(user=request.user).first()
         return membership.status if membership else None
 
@@ -91,6 +107,10 @@ class ClubSerializer(serializers.ModelSerializer):
             return None
         if obj.leader == request.user:
             return 'president'
+        user_memberships = self.context.get('user_memberships')
+        if user_memberships is not None:
+            membership = user_memberships.get(obj.id)
+            return membership.role if (membership and membership.status == 'approved') else None
         membership = obj.memberships.filter(user=request.user, status='approved').first()
         return membership.role if membership else None
 
@@ -99,12 +119,13 @@ class ClubSerializer(serializers.ModelSerializer):
         if not request or not request.user or not request.user.is_authenticated:
             return False
         user = request.user
-        return bool(
-            user.role == 'admin' or
-            user.is_staff or
-            obj.leader == user or
-            obj.memberships.filter(user=user, role__in=['president', 'vice_president'], status='approved').exists()
-        )
+        if user.role == 'admin' or user.is_staff or obj.leader == user:
+            return True
+        user_memberships = self.context.get('user_memberships')
+        if user_memberships is not None:
+            membership = user_memberships.get(obj.id)
+            return bool(membership and membership.role in ['president', 'vice_president'] and membership.status == 'approved')
+        return obj.memberships.filter(user=user, role__in=['president', 'vice_president'], status='approved').exists()
 
 
 class ClubWriteSerializer(serializers.ModelSerializer):
@@ -360,7 +381,10 @@ class EventSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user or not request.user.is_authenticated:
             return None
-
+        user_rsvps = self.context.get('user_rsvps')
+        if user_rsvps is not None:
+            rsvp = user_rsvps.get(obj.id)
+            return rsvp.status if rsvp else None
         # Check user's active RSVP (attending or waitlist)
         rsvp = obj.rsvps.filter(user=request.user).first()
         return rsvp.status if rsvp else None
@@ -369,6 +393,10 @@ class EventSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user or not request.user.is_authenticated:
             return None
+        user_rsvps = self.context.get('user_rsvps')
+        if user_rsvps is not None:
+            rsvp = user_rsvps.get(obj.id)
+            return rsvp.waitlist_position if (rsvp and rsvp.status == 'waitlist') else None
         rsvp = obj.rsvps.filter(user=request.user, status='waitlist').first()
         return rsvp.waitlist_position if rsvp else None
 
@@ -1069,12 +1097,19 @@ class PlacementDriveSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user or not request.user.is_authenticated:
             return False
+        user_applications = self.context.get('user_applications')
+        if user_applications is not None:
+            return obj.id in user_applications
         return obj.applications.filter(student=request.user).exists()
 
     def get_user_application_status(self, obj):
         request = self.context.get('request')
         if not request or not request.user or not request.user.is_authenticated:
             return None
+        user_applications = self.context.get('user_applications')
+        if user_applications is not None:
+            app = user_applications.get(obj.id)
+            return app.status if app else None
         app = obj.applications.filter(student=request.user).first()
         return app.status if app else None
 

@@ -97,6 +97,7 @@ class Club(models.Model):
         ordering = ['name']
         indexes = [
             models.Index(fields=['category', 'is_approved']),
+            models.Index(fields=['status', 'category']),
         ]
 
     def __str__(self):
@@ -104,10 +105,14 @@ class Club(models.Model):
 
     @property
     def member_count(self):
+        if hasattr(self, 'annotated_member_count'):
+            return self.annotated_member_count
         return self.memberships.filter(status='approved').count()
 
     @property
     def pending_applications_count(self):
+        if hasattr(self, 'annotated_pending_count'):
+            return self.annotated_pending_count
         return self.memberships.filter(status='pending').count()
 
 
@@ -188,6 +193,8 @@ class Event(models.Model):
         indexes = [
             models.Index(fields=['start_time', 'is_published']),
             models.Index(fields=['category', 'is_published']),
+            models.Index(fields=['status', 'start_time']),
+            models.Index(fields=['club', 'start_time']),
         ]
 
     def clean(self):
@@ -201,6 +208,8 @@ class Event(models.Model):
 
     @property
     def rsvp_count(self):
+        if hasattr(self, 'annotated_rsvp_count'):
+            return self.annotated_rsvp_count
         return self.rsvps.filter(status='attending').count()
 
     @property
@@ -221,6 +230,8 @@ class Event(models.Model):
 
     @property
     def waitlist_count(self):
+        if hasattr(self, 'annotated_waitlist_count'):
+            return self.annotated_waitlist_count
         return self.rsvps.filter(status='waitlist').count()
 
 
@@ -264,6 +275,7 @@ class EventRSVP(models.Model):
         ]
         indexes = [
             models.Index(fields=['event', 'status', 'created_at']),
+            models.Index(fields=['user', 'status']),
         ]
 
     def __str__(self):
@@ -887,6 +899,8 @@ class Opportunity(models.Model):
 
     @property
     def applications_count(self):
+        if hasattr(self, 'annotated_applications_count'):
+            return self.annotated_applications_count
         return self.applications.count()
 
 
@@ -928,6 +942,10 @@ class OpportunityApplication(models.Model):
                 fields=['opportunity', 'student'],
                 name='unique_student_opportunity_application'
             )
+        ]
+        indexes = [
+            models.Index(fields=['opportunity', 'status']),
+            models.Index(fields=['student', 'status']),
         ]
 
     def __str__(self):
@@ -1164,6 +1182,7 @@ class PlacementDrive(models.Model):
         indexes = [
             models.Index(fields=['status', 'application_deadline']),
             models.Index(fields=['eligibility_graduation_year', 'status']),
+            models.Index(fields=['status', 'drive_date']),
         ]
 
     def __str__(self):
@@ -1171,10 +1190,14 @@ class PlacementDrive(models.Model):
 
     @property
     def applications_count(self):
+        if hasattr(self, 'annotated_applications_count'):
+            return self.annotated_applications_count
         return self.applications.count()
 
     @property
     def selected_count(self):
+        if hasattr(self, 'annotated_selected_count'):
+            return self.annotated_selected_count
         return self.applications.filter(status='selected').count()
 
     def is_student_eligible(self, student_user):

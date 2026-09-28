@@ -43,7 +43,6 @@ class HealthCheckView(APIView):
             backend_name = channel_layer.__class__.__name__
             if "Redis" in backend_name:
                 try:
-                    # Test channel layer availability
                     channel_status = "connected"
                 except Exception:
                     channel_status = "degraded"
@@ -52,7 +51,29 @@ class HealthCheckView(APIView):
         else:
             channel_status = "not_configured"
 
-        # 3. Overall Health Classification
+        # 3. Redis Cache Check
+        cache_status = "unavailable"
+        try:
+            from django.core.cache import cache
+            cache.set("__health_probe__", "ok", timeout=5)
+            if cache.get("__health_probe__") == "ok":
+                cache_status = "connected"
+            else:
+                cache_status = "degraded"
+        except Exception:
+            cache_status = "disconnected"
+
+        # 4. Celery Broker Check
+        celery_status = "configured"
+        try:
+            from campushub.celery import celery_app
+            conn = celery_app.connection()
+            conn.ensure_connection(max_retries=1)
+            celery_status = "connected"
+        except Exception:
+            celery_status = "ready_or_offline"
+
+        # 5. Overall Health Classification
         if db_status == "connected" and channel_status in ("connected", "in_memory_ready"):
             overall_status = "healthy"
         elif db_status == "connected":
@@ -75,9 +96,16 @@ class HealthCheckView(APIView):
                     "engine": settings.DATABASES['default']['ENGINE'].split('.')[-1],
                     "latency_ms": db_latency_ms,
                 },
+                "cache": {
+                    "status": cache_status,
+                    "backend": settings.CACHES['default']['BACKEND'].split('.')[-1],
+                },
                 "channel_layer": {
                     "status": channel_status,
                     "type": "redis" if getattr(settings, 'USE_REDIS_CHANNEL_LAYER', False) else "in_memory",
+                },
+                "celery": {
+                    "status": celery_status,
                 },
                 "email_service": {
                     "backend": settings.EMAIL_BACKEND.split('.')[-1],

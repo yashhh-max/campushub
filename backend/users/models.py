@@ -97,6 +97,10 @@ class StudentProfile(models.Model):
     class Meta:
         verbose_name = _('student profile')
         verbose_name_plural = _('student profiles')
+        indexes = [
+            models.Index(fields=['department', 'graduation_year']),
+            models.Index(fields=['department', 'cgpa']),
+        ]
 
     def __str__(self):
         return f"Profile for {self.user.email} ({self.student_id or 'No ID'})"

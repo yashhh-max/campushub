@@ -10,6 +10,9 @@ from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from django.core.cache import cache
+from .cache_utils import cache_response
+
 User = get_user_model()
 from rest_framework.pagination import PageNumberPagination
 from .models import (
@@ -176,7 +179,32 @@ class EventListView(generics.ListCreateAPIView):
         if end_date:
             queryset = queryset.filter(start_time__date__lte=end_date)
 
-        return queryset.order_by('start_time')
+        return queryset.annotate(
+            annotated_rsvp_count=models.Count('rsvps', filter=models.Q(rsvps__status='attending'), distinct=True),
+            annotated_waitlist_count=models.Count('rsvps', filter=models.Q(rsvps__status='waitlist'), distinct=True),
+        ).order_by('start_time')
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+
+        user = request.user
+        extra_context = {}
+        if user and user.is_authenticated:
+            events_in_page = page if page is not None else list(queryset)
+            event_ids = [e.id for e in events_in_page]
+            rsvps = EventRSVP.objects.filter(user=user, event_id__in=event_ids)
+            extra_context['user_rsvps'] = {r.event_id: r for r in rsvps}
+
+        serializer_context = self.get_serializer_context()
+        serializer_context.update(extra_context)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context=serializer_context)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True, context=serializer_context)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -566,7 +594,32 @@ class ClubListView(generics.ListCreateAPIView):
         else:
             queryset = queryset.order_by('name')
 
-        return queryset
+        return queryset.annotate(
+            annotated_member_count=models.Count('memberships', filter=models.Q(memberships__status='approved'), distinct=True),
+            annotated_events_count=models.Count('events', distinct=True)
+        )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+
+        user = request.user
+        extra_context = {}
+        if user and user.is_authenticated:
+            clubs_in_page = page if page is not None else list(queryset)
+            club_ids = [c.id for c in clubs_in_page]
+            memberships = ClubMembership.objects.filter(user=user, club_id__in=club_ids)
+            extra_context['user_memberships'] = {m.club_id: m for m in memberships}
+
+        serializer_context = self.get_serializer_context()
+        serializer_context.update(extra_context)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context=serializer_context)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True, context=serializer_context)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -1229,14 +1282,19 @@ class NotificationListView(generics.ListAPIView):
 class NotificationUnreadCountView(APIView):
     """
     Quick count endpoint for the navbar notification bell badge.
+    Utilizes Redis cache (60s TTL) to prevent query flooding at 10,000 users.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        unread_count = Notification.objects.filter(
-            recipient=request.user,
-            is_read=False
-        ).count()
+        cache_key = f"user_unread_notif_{request.user.id}"
+        unread_count = cache.get(cache_key)
+        if unread_count is None:
+            unread_count = Notification.objects.filter(
+                recipient=request.user,
+                is_read=False
+            ).count()
+            cache.set(cache_key, unread_count, timeout=60)
         return Response({"unread_count": unread_count})
 
 
@@ -1255,6 +1313,7 @@ class NotificationMarkReadView(APIView):
         )
         notification.is_read = True
         notification.save()
+        cache.delete(f"user_unread_notif_{request.user.id}")
         return Response({
             "message": "Notification marked as read.",
             "notification": NotificationSerializer(notification).data
@@ -1272,6 +1331,7 @@ class NotificationMarkAllReadView(APIView):
             recipient=request.user,
             is_read=False
         ).update(is_read=True)
+        cache.delete(f"user_unread_notif_{request.user.id}")
         return Response({
             "message": f"{updated_count} notifications marked as read.",
             "unread_count": 0
@@ -2348,7 +2408,19 @@ class PlacementDriveListView(APIView):
         if company_id:
             qs = qs.filter(company_id=company_id)
 
-        serializer = PlacementDriveSerializer(qs.select_related('company').order_by('-drive_date'), many=True, context={'request': request})
+        qs = qs.select_related('company').annotate(
+            annotated_applications_count=models.Count('applications', distinct=True),
+            annotated_selected_count=models.Count('applications', filter=models.Q(applications__status='selected'), distinct=True),
+        ).order_by('-drive_date')
+
+        drives = list(qs)
+        extra_context = {'request': request}
+        if user and user.is_authenticated:
+            drive_ids = [d.id for d in drives]
+            user_apps = PlacementApplication.objects.filter(student=user, drive_id__in=drive_ids)
+            extra_context['user_applications'] = {app.drive_id: app for app in user_apps}
+
+        serializer = PlacementDriveSerializer(drives, many=True, context=extra_context)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):

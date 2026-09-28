@@ -116,12 +116,15 @@ export function Navbar() {
       });
       wsClient.connect();
 
-      // 3. Fallback poll every 30 seconds
+      // 3. Fallback poll every 90 seconds when tab is visible
       const interval = setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+          return;
+        }
         fetchUnreadNotificationCount(token).then((count) => {
           if (active) setUnreadCount(count);
         });
-      }, 30000);
+      }, 90000);
 
       return () => {
         active = false;
